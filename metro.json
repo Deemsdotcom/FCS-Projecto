@@ -1,0 +1,2844 @@
+{
+  "type": "FeatureCollection",
+  "generator": "overpass-turbo",
+  "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL.",
+  "timestamp": "2025-11-27T14:49:12Z",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/267309437",
+        "colour": "blue",
+        "name": "Історичний музей",
+        "name:en": "Istorychny Muzey",
+        "name:ru": "Исторический музей",
+        "name:uk": "Історичний музей",
+        "operator": "КП «Харківський метрополітен»",
+        "public_transport": "station",
+        "railway": "station",
+        "start_date": "1984",
+        "station": "subway",
+        "subway": "yes",
+        "transport": "subway",
+        "wikidata": "Q1980598",
+        "wikipedia": "uk:Історичний музей (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          36.2320574,
+          49.9920268
+        ]
+      },
+      "id": "node/267309437"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/267309438",
+        "colour": "blue",
+        "name": "Університет",
+        "name:de": "Universität",
+        "name:en": "University",
+        "name:ru": "Университет",
+        "name:uk": "Університет",
+        "operator": "КП «Харківський метрополітен»",
+        "public_transport": "station",
+        "railway": "station",
+        "start_date": "1984",
+        "station": "subway",
+        "subway": "yes",
+        "transport": "subway",
+        "wikidata": "Q1982189",
+        "wikipedia": "uk:Університет (станція метро, Харків)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          36.2343559,
+          50.0043965
+        ]
+      },
+      "id": "node/267309438"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/267309824",
+        "brand": "Kharkiv Metro",
+        "brand:wikidata": "Q673320",
+        "brand:wikipedia": "Kharkiv Metro",
+        "name": "Вокзальна",
+        "name:en": "Vokzalna",
+        "name:ru": "Вокзальная",
+        "name:uk": "Вокзальна",
+        "network": "Харківський метрополітен",
+        "old_name": "Південний вокзал",
+        "old_name:uk": "Південний вокзал",
+        "operator": "КП «Харківський метрополітен»",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "transport": "subway"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          36.2063922,
+          49.9897354
+        ]
+      },
+      "id": "node/267309824"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/267309843",
+        "brand": "Kharkiv Metro",
+        "brand:wikidata": "Q673320",
+        "brand:wikipedia": "Kharkiv Metro",
+        "name": "Майдан Конституції",
+        "name:en": "Maidan Konstytutsii",
+        "name:uk": "Майдан Конституції",
+        "old_name": "Радянська",
+        "old_name:en": "Radianska",
+        "old_name:uk": "Радянська",
+        "operator": "КП «Харківський метрополітен»",
+        "public_transport": "station",
+        "railway": "station",
+        "start_date": "1975",
+        "station": "subway",
+        "subway": "yes",
+        "transport": "subway",
+        "wikidata": "Q1851615",
+        "wikipedia": "uk:Майдан Конституції (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          36.2317622,
+          49.9918695
+        ]
+      },
+      "id": "node/267309843"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/267309844",
+        "name": "Левада",
+        "name:en": "Levada",
+        "name:ru": "Левада",
+        "name:uk": "Левада",
+        "old_name": "Проспект Гагаріна",
+        "old_name:en": "Prospekt Haharіna",
+        "old_name:uk": "Проспект Гагаріна",
+        "operator": "КП «Харківський метрополітен»",
+        "public_transport": "station",
+        "railway": "station",
+        "start_date": "1975",
+        "station": "subway",
+        "subway": "yes",
+        "transport": "subway",
+        "wikidata": "Q1980939",
+        "wikipedia": "uk:Проспект Гагаріна (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          36.2431139,
+          49.9809137
+        ]
+      },
+      "id": "node/267309844"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/267310306",
+        "name": "Спортивна",
+        "name:en": "Sportyvna",
+        "name:ru": "Спортивная",
+        "name:uk": "Спортивна",
+        "operator": "КП «Харківський метрополітен»",
+        "public_transport": "station",
+        "railway": "station",
+        "start_date": "1975",
+        "station": "subway",
+        "subway": "yes",
+        "toilets": "yes",
+        "transport": "subway",
+        "wheelchair": "no",
+        "wikidata": "Q2021778",
+        "wikipedia": "uk:Спортивна (станція метро, Харків)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          36.2612851,
+          49.9792593
+        ]
+      },
+      "id": "node/267310306"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/267310307",
+        "name": "Заводська",
+        "name:en": "Zavodska",
+        "name:ru": "Заводская",
+        "name:uk": "Заводська",
+        "old_name": "Завод імені Малишева",
+        "old_name:en": "Zavod imeni Malysheva",
+        "old_name:uk": "Завод імені Малишева",
+        "operator": "КП «Харківський метрополітен»",
+        "public_transport": "station",
+        "railway": "station",
+        "start_date": "1975",
+        "station": "subway",
+        "subway": "yes",
+        "transport": "subway",
+        "wikidata": "Q1980928",
+        "wikipedia": "uk:Завод імені Малишева (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          36.2808808,
+          49.9760105
+        ]
+      },
+      "id": "node/267310307"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/267310308",
+        "name": "Турбоатом",
+        "name:en": "Turboatom",
+        "name:ru": "Турбоатом",
+        "name:uk": "Турбоатом",
+        "operator": "КП «Харківський метрополітен»",
+        "public_transport": "station",
+        "railway": "station",
+        "start_date": "1975",
+        "station": "subway",
+        "subway": "yes",
+        "transport": "subway",
+        "wikidata": "Q2295092",
+        "wikipedia": "uk:Турбоатом (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          36.3017772,
+          49.9722414
+        ]
+      },
+      "id": "node/267310308"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/267310326",
+        "name": "Палац Спорту",
+        "name:en": "Palats Sportu",
+        "name:ru": "Дворец Спорта",
+        "name:uk": "Палац Спорту",
+        "operator": "КП «Харківський метрополітен»",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "transport": "subway",
+        "wheelchair": "limited",
+        "wikidata": "Q1980634",
+        "wikipedia": "uk:Палац Спорту (станція метро, Харків)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          36.32113,
+          49.9663613
+        ]
+      },
+      "id": "node/267310326"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/267310368",
+        "name": "Армійська",
+        "name:en": "Armiiska",
+        "name:ru": "Армейская",
+        "name:uk": "Армійська",
+        "operator": "КП «Харківський метрополітен»",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "transport": "subway",
+        "wikidata": "Q1980955",
+        "wikipedia": "uk:Армійська (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          36.3429876,
+          49.9619415
+        ]
+      },
+      "id": "node/267310368"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/267310369",
+        "name": "Ім. О.С. Масельського",
+        "name:en": "іm. O.S. Maselskoho",
+        "name:ru": "им. А.С. Масельского",
+        "name:uk": "Ім. О.С. Масельського",
+        "operator": "КП «Харківський метрополітен»",
+        "public_transport": "station",
+        "railway": "station",
+        "start_date": "1978",
+        "station": "subway",
+        "subway": "yes",
+        "transport": "subway"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          36.3601484,
+          49.9585511
+        ]
+      },
+      "id": "node/267310369"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/267310391",
+        "brand": "Kharkiv Metro",
+        "brand:wikidata": "Q673320",
+        "brand:wikipedia": "Kharkiv Metro",
+        "name": "Центральний ринок",
+        "name:en": "Tsentralny Rynok",
+        "name:ru": "Центральный рынок",
+        "name:uk": "Центральний ринок",
+        "operator": "КП «Харківський метрополітен»",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "transport": "subway",
+        "wikidata": "Q1981254",
+        "wikipedia": "uk:Центральний ринок (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          36.2196113,
+          49.9927554
+        ]
+      },
+      "id": "node/267310391"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/267465955",
+        "colour": "blue",
+        "name": "Ярослава Мудрого",
+        "name:en": "Yaroslava Mudroho",
+        "name:ru": "Ярослава Мудрого",
+        "name:uk": "Ярослава Мудрого",
+        "old_name": "Пушкінська",
+        "old_name:en": "Pushkіnska",
+        "old_name:uk": "Пушкінська",
+        "operator": "КП «Харківський метрополітен»",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "transport": "subway",
+        "wikidata": "Q1984078",
+        "wikipedia": "uk:Пушкінська (станція метро, Харків)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          36.248325,
+          50.0038678
+        ]
+      },
+      "id": "node/267465955"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/267465956",
+        "colour": "blue",
+        "name": "Київська",
+        "name:en": "Kyivska",
+        "name:ru": "Киевская",
+        "name:uk": "Київська",
+        "operator": "КП «Харківський метрополітен»",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "transport": "subway",
+        "wikidata": "Q1981672",
+        "wikipedia": "uk:Київська (станція метро, Харків)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          36.2693864,
+          50.0013602
+        ]
+      },
+      "id": "node/267465956"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/267465957",
+        "colour": "blue",
+        "name": "Академіка Барабашова",
+        "name:en": "Akademіka Barabashova",
+        "name:ru": "Академика Барабашова",
+        "name:uk": "Академіка Барабашова",
+        "operator": "КП «Харківський метрополітен»",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "transport": "subway"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          36.302741,
+          50.0024853
+        ]
+      },
+      "id": "node/267465957"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/267465958",
+        "colour": "blue",
+        "name": "Академіка Павлова",
+        "name:en": "Akademіka Pavlova",
+        "name:ru": "Академика Павлова",
+        "name:uk": "Академіка Павлова",
+        "operator": "КП «Харківський метрополітен»",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "transport": "subway",
+        "wikidata": "Q1982377",
+        "wikipedia": "uk:Академіка Павлова"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          36.3188132,
+          50.0096354
+        ]
+      },
+      "id": "node/267465958"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/267465960",
+        "colour": "blue",
+        "name": "Салтівська",
+        "name:en": "Saltivska",
+        "name:ru": "Салтовская",
+        "name:uk": "Салтівська",
+        "old_name": "Героїв праці",
+        "old_name:en": "Heroiv Pratsi",
+        "old_name:uk": "Героїв праці",
+        "operator": "КП «Харківський метрополітен»",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "transport": "subway",
+        "wikidata": "Q1984066",
+        "wikipedia": "ru:Салтовская (станция метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          36.3358942,
+          50.0248759
+        ]
+      },
+      "id": "node/267465960"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/267466050",
+        "name": "Держпром",
+        "name:de": "Derschprom",
+        "name:en": "Derzhprom",
+        "name:es": "Derzhprom",
+        "name:pl": "Derżprom",
+        "name:ru": "Госпром",
+        "name:uk": "Держпром",
+        "operator": "КП «Харківський метрополітен»",
+        "public_transport": "station",
+        "railway": "station",
+        "start_date": "1995",
+        "station": "subway",
+        "subway": "yes",
+        "transport": "subway",
+        "wikidata": "Q1984072",
+        "wikipedia": "uk:Держпром (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          36.232216,
+          50.004857
+        ]
+      },
+      "id": "node/267466050"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/267466051",
+        "name": "Наукова",
+        "name:en": "Naukova",
+        "name:ru": "Научная",
+        "name:uk": "Наукова",
+        "operator": "КП «Харківський метрополітен»",
+        "public_transport": "stop_position",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "transport": "subway",
+        "wheelchair": "yes",
+        "wikidata": "Q1984058",
+        "wikipedia": "uk:Наукова (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          36.2269058,
+          50.0129583
+        ]
+      },
+      "id": "node/267466051"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/267466052",
+        "name": "Ботанічний сад",
+        "name:en": "Botanichny Sad",
+        "name:ru": "Ботанический сад",
+        "name:uk": "Ботанічний сад",
+        "operator": "КП «Харківський метрополітен»",
+        "public_transport": "stop_position",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "transport": "subway",
+        "wikidata": "Q1984574",
+        "wikipedia": "uk:Ботанічний сад (станція метро, Харків)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          36.2230034,
+          50.0261792
+        ]
+      },
+      "id": "node/267466052"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/267466053",
+        "name": "23 серпня",
+        "name:en": "23 Serpnya",
+        "name:ru": "23 августа",
+        "name:uk": "23 серпня",
+        "operator": "КП «Харківський метрополітен»",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "transport": "subway",
+        "wikidata": "Q1984723",
+        "wikipedia": "uk:23 Серпня (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          36.2199338,
+          50.0356056
+        ]
+      },
+      "id": "node/267466053"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/267466054",
+        "name": "Олексіївська",
+        "name:en": "Oleksiivska",
+        "name:ru": "Алексеевская",
+        "name:uk": "Олексіївська",
+        "operator": "КП «Харківський метрополітен»",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "transport": "subway",
+        "wikidata": "Q2423534",
+        "wikipedia": "uk:Олексіївська (станція метро, Харків)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          36.2062928,
+          50.0502465
+        ]
+      },
+      "id": "node/267466054"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/267466152",
+        "name": "Метробудівників",
+        "name:en": "Metrobudіvnykіv",
+        "name:ru": "Метростроителей",
+        "name:uk": "Метробудівників",
+        "operator": "КП «Харківський метрополітен»",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "transport": "subway",
+        "wikidata": "Q919772",
+        "wikipedia": "uk:Метробудівників (станція метро, Харків)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          36.2624343,
+          49.9782542
+        ]
+      },
+      "id": "node/267466152"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/267466153",
+        "name": "Захисників України",
+        "name:en": "Zakhysnykiv Ukrainy",
+        "name:ru": "Защитников Украины",
+        "name:uk": "Захисників України",
+        "old_name": "Площа Повстання",
+        "old_name:ru": "Площадь Восстания",
+        "old_name:uk": "Площа Повстання",
+        "operator": "КП «Харківський метрополітен»",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "transport": "subway",
+        "wikidata": "Q1984538",
+        "wikipedia": "uk:Захисників України (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          36.2648632,
+          49.9887698
+        ]
+      },
+      "id": "node/267466153"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/267466154",
+        "name": "Архітектора Бекетова",
+        "name:en": "Arkhіtektora Beketova",
+        "name:ru": "Архитектора Бекетова",
+        "name:uk": "Архітектора Бекетова",
+        "operator": "КП «Харківський метрополітен»",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "transport": "subway",
+        "wikidata": "Q1984580",
+        "wikipedia": "uk:Архітектора Бекетова (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          36.2397102,
+          49.9998542
+        ]
+      },
+      "id": "node/267466154"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/268473514",
+        "brand": "Kharkiv Metro",
+        "brand:wikidata": "Q673320",
+        "brand:wikipedia": "Kharkiv Metro",
+        "name": "Холодна Гора",
+        "name:en": "Kholodna Hora",
+        "name:ru": "Холодная Гора",
+        "name:uk": "Холодна Гора",
+        "operator": "КП «Харківський метрополітен»",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "transport": "subway",
+        "wikidata": "Q1980909",
+        "wikipedia": "uk:Холодна гора (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          36.1825132,
+          49.9827895
+        ]
+      },
+      "id": "node/268473514"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/757407826",
+        "construction:public_transport": "station",
+        "construction:railway": "station",
+        "name": "Пролетарская",
+        "name:ru": "Пролетарская",
+        "name:uk": "Пролетарська",
+        "station": "subway",
+        "subway": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.9056222,
+          47.9801136
+        ]
+      },
+      "id": "node/757407826"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/927301101",
+        "name": "Заводська",
+        "name:en": "Zavodska",
+        "name:ru": "Заводская",
+        "name:uk": "Заводська",
+        "network": "Дніпровський метрополітен",
+        "operator": "КП \"Днепропетровский метрополитен\"",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "wikidata": "Q1992249",
+        "wikipedia": "uk:Заводська (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          34.9605767,
+          48.4757642
+        ]
+      },
+      "id": "node/927301101"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/927301134",
+        "name": "Металургів",
+        "name:en": "Metalurhiv",
+        "name:ru": "Металлургов",
+        "name:uk": "Металургів",
+        "network": "Дніпровський метрополітен",
+        "operator": "КП \"Днепропетровский метрополитен\"",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "wikidata": "Q4291606",
+        "wikipedia": "uk:Металургів (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          34.9785358,
+          48.4765805
+        ]
+      },
+      "id": "node/927301134"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/927301152",
+        "name": "Вокзальна",
+        "name:en": "Vokzalna",
+        "name:ru": "Вокзальная",
+        "name:uk": "Вокзальна",
+        "network": "Дніпровський метрополітен",
+        "operator": "КП \"Днепропетровский метрополитен\"",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "wikidata": "Q1969301",
+        "wikipedia": "uk:Вокзальна (станція метро, Дніпро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          35.0175617,
+          48.4751515
+        ]
+      },
+      "id": "node/927301152"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/927301172",
+        "name": "Метробудівників",
+        "name:en": "Metrobudivnykiv",
+        "name:ru": "Метростроителей",
+        "name:uk": "Метробудівників",
+        "network": "Дніпровський метрополітен",
+        "operator": "КП \"Днепропетровский метрополитен\"",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "wikidata": "Q4292001",
+        "wikipedia": "uk:Метробудівників (станція метро, Дніпро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          34.9968729,
+          48.4748789
+        ]
+      },
+      "id": "node/927301172"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/927301279",
+        "layer": "-2",
+        "name": "Покровська",
+        "name:en": "Pokrovska",
+        "name:ru": "Покровская",
+        "name:uk": "Покровська",
+        "network": "Дніпровський метрополітен",
+        "old_name": "Комунарівська",
+        "old_name:en": "Komunarivska",
+        "old_name:uk": "Комунарівська",
+        "operator": "КП \"Днепропетровский метрополитен\"",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "wikidata": "Q1993847",
+        "wikipedia": "uk:Покровська (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          34.9267324,
+          48.4792912
+        ]
+      },
+      "id": "node/927301279"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/927301378",
+        "name": "Проспект Свободи",
+        "name:en": "Prospekt Svobody",
+        "name:ru": "Проспект Свободы",
+        "name:uk": "Проспект Свободи",
+        "network": "Дніпровський метрополітен",
+        "operator": "КП \"Днепропетровский метрополитен\"",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "wikidata": "Q4381359",
+        "wikipedia": "uk:Проспект Свободи (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          34.9447918,
+          48.4802731
+        ]
+      },
+      "id": "node/927301378"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/984656672",
+        "name": "Тракторний завод",
+        "name:en": "Traktorni Zavod",
+        "name:ru": "Тракторный завод",
+        "name:uk": "Тракторний завод",
+        "operator": "КП «Харківський метрополітен»",
+        "public_transport": "station",
+        "railway": "station",
+        "start_date": "1978",
+        "station": "subway",
+        "subway": "yes",
+        "transport": "subway",
+        "wikidata": "Q1980948",
+        "wikipedia": "uk:Тракторний завод (станція метро, Харків)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          36.37898,
+          49.9527876
+        ]
+      },
+      "id": "node/984656672"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/1283748378",
+        "name": "Індустріальна",
+        "name:en": "Industrialna",
+        "name:ru": "Индустриальная",
+        "name:uk": "Індустріальна",
+        "old_name": "Пролетарськая",
+        "old_name:ru": "Пролетарская",
+        "old_name:uk": "Пролетарська",
+        "operator": "КП «Харківський метрополітен»",
+        "public_transport": "station",
+        "railway": "station",
+        "start_date": "1978",
+        "station": "subway",
+        "subway": "yes",
+        "transport": "subway",
+        "wikidata": "Q1981278",
+        "wikipedia": "uk:Індустріальна (станція метро, Харків)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          36.3980814,
+          49.9465779
+        ]
+      },
+      "id": "node/1283748378"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/1684642898",
+        "colour": "blue",
+        "name": "Студентська",
+        "name:en": "Studentska",
+        "name:ru": "Студенческая",
+        "name:uk": "Студентська",
+        "operator": "КП «Харківський метрополітен»",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "transport": "subway",
+        "wikidata": "Q1982385",
+        "wikipedia": "uk:Студентська (станція метро, Харків)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          36.3299525,
+          50.0179549
+        ]
+      },
+      "id": "node/1684642898"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/3489940106",
+        "construction": "station",
+        "name": "Львівська брама",
+        "name:en": "Lvivska Brama",
+        "name:uk": "Львівська брама",
+        "network": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "construction",
+        "station": "subway",
+        "subway": "yes",
+        "wikidata": "Q4271038",
+        "wikipedia": "uk:Львівська брама (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.5030383,
+          50.4542969
+        ]
+      },
+      "id": "node/3489940106"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/3803383803",
+        "line": "Святошинсько-Броварська",
+        "name": "Лівобережна",
+        "name:en": "Livoberezhna",
+        "name:es": "Livoberezhna",
+        "name:ru": "Левобережная",
+        "name:uk": "Лівобережна",
+        "name:zh": "左岸",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "124",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "yes",
+        "wikidata": "Q2385351",
+        "wikipedia": "uk:Лівобережна (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.5981679,
+          50.4518631
+        ]
+      },
+      "id": "node/3803383803"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/3803423898",
+        "int_name": "Hidropark",
+        "line": "Святошинсько-Броварська",
+        "name": "Гідропарк",
+        "name:de": "Hidropark",
+        "name:en": "Hydropark",
+        "name:es": "Hidropárk",
+        "name:ru": "Гидропарк",
+        "name:uk": "Гідропарк",
+        "name:uk-Latn": "Hidropark",
+        "name:zh": "水公园",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "123",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q2249474",
+        "wikipedia": "uk:Гідропарк (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.5770339,
+          50.445993
+        ]
+      },
+      "id": "node/3803423898"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/3803601761",
+        "covered": "yes",
+        "line": "Святошинсько-Броварська",
+        "name": "Дарниця",
+        "name:en": "Darnytsia",
+        "name:es": "Dárnytsia",
+        "name:ru": "Дарница",
+        "name:uk": "Дарниця",
+        "name:zh": "达尔尼齐亚",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "opening_hours": "Mo-Su 05:30-22:31",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "125",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "yes",
+        "wikidata": "Q608532",
+        "wikipedia": "uk:Дарниця (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.6128423,
+          50.4559397
+        ]
+      },
+      "id": "node/3803601761"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/3803615569",
+        "line": "Святошинсько-Броварська",
+        "name": "Чернігівська",
+        "name:en": "Chernihivska",
+        "name:es": "Cherníhivska",
+        "name:ru": "Черниговская",
+        "name:uk": "Чернігівська",
+        "name:zh": "切尔尼戈夫",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "old_name": "Комсомольська",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "126",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q744366",
+        "wikipedia": "uk:Чернігівська (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.6303119,
+          50.4598903
+        ]
+      },
+      "id": "node/3803615569"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/3803636265",
+        "line": "Святошинсько-Броварська",
+        "name": "Лісова",
+        "name:en": "Lisova",
+        "name:es": "Lisová",
+        "name:ru": "Лесная",
+        "name:uk": "Лісова",
+        "name:zh": "森林",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "old_name": "Піонерська",
+        "opening_hours": "05:45-00:02",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "127",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "yes",
+        "wikidata": "Q2720732",
+        "wikipedia": "uk:Лісова (станція метро, Київ)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.6459702,
+          50.4647597
+        ]
+      },
+      "id": "node/3803636265"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/3804139642",
+        "line": "Святошинсько-Броварська",
+        "name": "Дніпро",
+        "name:en": "Dnipro",
+        "name:es": "Dnipro",
+        "name:ru": "Днепр",
+        "name:uk": "Дніпро",
+        "name:uk-Latn": "Dnipro",
+        "name:zh": "第聂伯",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "122",
+        "start_date": "1960-11-06",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q2684139",
+        "wikipedia": "uk:Дніпро (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.5586885,
+          50.4410407
+        ]
+      },
+      "id": "node/3804139642"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/3804612585",
+        "line": "Святошинсько-Броварська",
+        "name": "Арсенальна",
+        "name:en": "Arsenalna",
+        "name:es": "Arsenalna",
+        "name:ru": "Арсенальная",
+        "name:uk": "Арсенальна",
+        "name:zh": "兵工厂",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "121",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q1875185",
+        "wikipedia": "uk:Арсенальна (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.5454331,
+          50.4444878
+        ]
+      },
+      "id": "node/3804612585"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/3806362030",
+        "alt_name:en": "University",
+        "covered": "yes",
+        "int_name": "Universytet",
+        "line": "Святошинсько-Броварська",
+        "name": "Університет",
+        "name:de": "Universität",
+        "name:en": "Universytet",
+        "name:ru": "Университет",
+        "name:uk": "Університет",
+        "name:uk-Latn": "Universytet",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "118",
+        "start_date": "1960-11-06",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q1825824",
+        "wikipedia": "uk:Університет (станція метро, Київ)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.5058928,
+          50.4442469
+        ]
+      },
+      "id": "node/3806362030"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/3806369598",
+        "covered": "yes",
+        "line": "Святошинсько-Броварська",
+        "name": "Вокзальна",
+        "name:en": "Vokzalna",
+        "name:pl": "Wokzalna",
+        "name:ru": "Вокзальная",
+        "name:uk": "Вокзальна",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "117",
+        "start_date": "1960-11-06",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q2042690",
+        "wikipedia": "uk:Вокзальна (станція метро, Київ)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.4882512,
+          50.4416401
+        ]
+      },
+      "id": "node/3806369598"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/3806396836",
+        "alt_name:en": "Polytechnic Institute",
+        "covered": "yes",
+        "int_name": "Politekhnichnyi Instytut",
+        "line": "Святошинсько-Броварська",
+        "name": "Політехнічний інститут",
+        "name:en": "Politekhnichnyi Instytut",
+        "name:ru": "Политехнический институт",
+        "name:uk": "Політехнічний інститут",
+        "name:uk-Latn": "Politekhnichnyi Instytut",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "116",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q2069203",
+        "wikipedia": "uk:Політехнічний інститут (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.466127,
+          50.4507932
+        ]
+      },
+      "id": "node/3806396836"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/3806407690",
+        "covered": "yes",
+        "line": "Святошинсько-Броварська",
+        "name": "Шулявська",
+        "name:en": "Shuliavska",
+        "name:ru": "Шулявская",
+        "name:uk": "Шулявська",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "old_name": "Завод «Більшовик»",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "115",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q1851611",
+        "wikipedia": "uk:Шулявська (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.4453703,
+          50.4550745
+        ]
+      },
+      "id": "node/3806407690"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/3806424761",
+        "line": "Святошинсько-Броварська",
+        "name": "Берестейська",
+        "name:en": "Beresteiska",
+        "name:ru": "Берестейская",
+        "name:uk": "Берестейська",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "old_name": "Жовтнева",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "114",
+        "start_date": "5-11-1971",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q1926240",
+        "wikipedia": "uk:Берестейська (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.419688,
+          50.4590925
+        ]
+      },
+      "id": "node/3806424761"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/3806440513",
+        "line": "Святошинсько-Броварська",
+        "name": "Нивки",
+        "name:en": "Nyvky",
+        "name:ru": "Нивки",
+        "name:uk": "Нивки",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "113",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q2293785",
+        "wikipedia": "uk:Нивки (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.4042048,
+          50.4585958
+        ]
+      },
+      "id": "node/3806440513"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/3806462121",
+        "covered": "yes",
+        "fee": "yes",
+        "internet_access": "no",
+        "line": "Святошинсько-Броварська",
+        "name": "Житомирська",
+        "name:en": "Zhytomyrska",
+        "name:ru": "Житомирская",
+        "name:uk": "Житомирська",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "opening_hours": "Mo-Su 05:45-22:27",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "111",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q2386553",
+        "wikipedia": "uk:Житомирська (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.3658729,
+          50.4561717
+        ]
+      },
+      "id": "node/3806462121"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/3806504759",
+        "covered": "yes",
+        "int_name": "Akademmistechko",
+        "layer": "-2",
+        "line": "Святошинсько-Броварська",
+        "name": "Академмістечко",
+        "name:en": "Akademmistechko",
+        "name:ru": "Академгородок",
+        "name:uk": "Академмістечко",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "110",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q672013",
+        "wikipedia": "uk:Академмістечко (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.3550833,
+          50.4647043
+        ]
+      },
+      "id": "node/3806504759"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/4363629723",
+        "name": "Перемога",
+        "name:en": "Peremoha",
+        "name:ru": "Победа",
+        "name:uk": "Перемога",
+        "operator": "КП «Харківський метрополітен»",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "transport": "subway",
+        "wikidata": "Q4366196",
+        "wikipedia": "uk:Перемога (станція метро, Харків)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          36.2016442,
+          50.0593939
+        ]
+      },
+      "id": "node/4363629723"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/5267935777",
+        "name": "Васильківська",
+        "name:en": "Vasylkivska",
+        "name:uk": "Васильківська",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "opening_hours": "05:50-22:32",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "224",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "yes",
+        "wikidata": "Q2639661",
+        "wikipedia": "uk:Васильківська (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.488223,
+          50.3933354
+        ]
+      },
+      "id": "node/5267935777"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/5267935778",
+        "alt_name:en": "Palace of Sports",
+        "int_name": "Palats Sportu",
+        "name": "Палац спорту",
+        "name:de": "Sportpalast",
+        "name:en": "Palats Sportu",
+        "name:es": "Palacio de los deportes",
+        "name:fr": "Palais des Sports",
+        "name:ja": "キエフ・スポーツ宮殿",
+        "name:nl": "Sportpaleis",
+        "name:pl": "Pałac Sportu",
+        "name:ro": "Palatul Sporturilor",
+        "name:ru": "Дворец спорта",
+        "name:sv": "Sportpalatset",
+        "name:uk": "Палац спорту",
+        "name:uk-Latn": "Palats Sportu",
+        "name:zh": "体育宫",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "315",
+        "station": "subway",
+        "subway": "yes",
+        "wikidata": "Q2395573",
+        "wikipedia": "uk:Палац спорту (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.5208694,
+          50.4382891
+        ]
+      },
+      "id": "node/5267935778"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/5267935779",
+        "name": "Славутич",
+        "name:en": "Slavutych",
+        "name:es": "Slavutych",
+        "name:ru": "Славутич",
+        "name:uk": "Славутич",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "321",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q2098439",
+        "wikipedia": "uk:Славутич (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.6051576,
+          50.3942003
+        ]
+      },
+      "id": "node/5267935779"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/5267935780",
+        "name": "Осокорки",
+        "name:en": "Osokorky",
+        "name:es": "Osokorky",
+        "name:uk": "Осокорки",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "322",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q2395489",
+        "wikipedia": "uk:Осокорки (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.6162493,
+          50.3951862
+        ]
+      },
+      "id": "node/5267935780"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/5267935781",
+        "name": "Сирець",
+        "name:en": "Syrets",
+        "name:ru": "Сырец",
+        "name:uk": "Сирець",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q2635604",
+        "wikipedia": "uk:Сирець (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.430831,
+          50.4763888
+        ]
+      },
+      "id": "node/5267935781"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/5267955452",
+        "name": "Червоний Хутір",
+        "name:en": "Chervonyi Khutir",
+        "name:es": "Chervony Jutir",
+        "name:ru": "Красный хутор",
+        "name:uk": "Червоний Хутір",
+        "name:uk-Latn": "Chervonyi Khutir",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "yes",
+        "wikidata": "Q2395585",
+        "wikipedia": "uk:Червоний Хутір (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.6961767,
+          50.4094593
+        ]
+      },
+      "id": "node/5267955452"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/5267955453",
+        "departures_board": "realtime",
+        "layer": "-2",
+        "name": "Виставковий центр",
+        "name:en": "Vystavkovyi Tsentr",
+        "name:uk": "Виставковий центр",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "opening_hours": "Mo-Su 05:53-22:28",
+        "operator": "Київський метрополітен",
+        "passenger_information_display": "yes",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "225",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "yes",
+        "wikidata": "Q4837469",
+        "wikipedia": "uk:Виставковий центр (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.4775836,
+          50.3824987
+        ]
+      },
+      "id": "node/5267955453"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/5267955454",
+        "alt_name:en": "Hippodrome",
+        "name": "Іподром",
+        "name:en": "Ipodrom",
+        "name:ru": "Ипподром",
+        "name:uk": "Іподром",
+        "name:uk-Latn": "Ipodrom",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "opening_hours": "05:50-00:02",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "226",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "yes",
+        "wikidata": "Q2070993",
+        "wikipedia": "uk:Іподром (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.4690454,
+          50.3765534
+        ]
+      },
+      "id": "node/5267955454"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/5267955455",
+        "name": "Теремки",
+        "name:en": "Teremky",
+        "name:ru": "Теремки",
+        "name:uk": "Теремки",
+        "name:uk-Latn": "Teremky",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "opening_hours": "05:53-22:25",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "227",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "yes",
+        "wikidata": "Q4455579",
+        "wikipedia": "uk:Теремки (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.4538209,
+          50.3669054
+        ]
+      },
+      "id": "node/5267955455"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/5267955456",
+        "name": "Дорогожичі",
+        "name:en": "Dorohozhychi",
+        "name:ru": "Дорогожичи",
+        "name:uk": "Дорогожичі",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q2107939",
+        "wikipedia": "uk:Дорогожичі (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.4487773,
+          50.4737337
+        ]
+      },
+      "id": "node/5267955456"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/5362524991",
+        "int_name": "Obolon",
+        "name": "Оболонь",
+        "name:en": "Obolon",
+        "name:ru": "Оболонь",
+        "name:uk": "Оболонь",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q2635594",
+        "wikipedia": "uk:Оболонь (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.4982231,
+          50.5015331
+        ]
+      },
+      "id": "node/5362524991"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/5362526369",
+        "name": "Героїв Дніпра",
+        "name:en": "Heroiv Dnipra",
+        "name:uk": "Героїв Дніпра",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q1935961",
+        "wikipedia": "uk:Героїв Дніпра (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.4988991,
+          50.5226701
+        ]
+      },
+      "id": "node/5362526369"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/7104807495",
+        "name": "Контрактова площа",
+        "name:de": "Kontraktowa-Platz",
+        "name:en": "Kontraktova Ploshcha",
+        "name:ru": "Контрактовая площадь",
+        "name:uk": "Контрактова площа",
+        "name:uk-Latn": "Kontraktova Ploshcha",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "215",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q2634558",
+        "wikipedia": "uk:Контрактова площа (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.5150809,
+          50.4658354
+        ]
+      },
+      "id": "node/7104807495"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/7160992960",
+        "alt_name:en": "Golden Gate",
+        "architect": "В. Б. Жежерін;Б. П. Жежерін",
+        "artist_name": "Г. І. Корень;В. П. Федько;С. М. Адаменко;М. А. Ралко",
+        "int_name": "Zoloti Vorota",
+        "layer": "-2",
+        "name": "Золоті ворота",
+        "name:de": "Goldenes Tor",
+        "name:en": "Zoloti Vorota",
+        "name:es": "Zoloti Vorota",
+        "name:fr": "Porte dorée",
+        "name:ru": "Золотые ворота",
+        "name:uk": "Золоті ворота",
+        "name:uk-Latn": "Zoloti Vorota",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "start_date": "1989-12-31",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q2388637",
+        "wikipedia": "uk:Золоті ворота (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.5134785,
+          50.4482462
+        ]
+      },
+      "id": "node/7160992960"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/7161002666",
+        "internet_access": "wlan",
+        "name": "Площа Українських Героїв",
+        "name:en": "Ploshcha Ukrainskykh Heroiv",
+        "name:uk": "Площа Українських Героїв",
+        "name:uk-Latn": "Ploshcha Ukrainskykh Heroiv",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "old_name": "Площа Льва Толстого",
+        "old_name:en": "Ploshcha Lva Tolstoho",
+        "old_name:uk": "Площа Льва Толстого",
+        "old_name:zh": "列夫·托尔斯泰广场",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "218",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q2388684",
+        "wikipedia": "uk:Площа Українських Героїв (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.5166416,
+          50.4394165
+        ]
+      },
+      "id": "node/7161002666"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/7161002667",
+        "layer": "-2",
+        "name": "Театральна",
+        "name:de": "Theaterplatz",
+        "name:en": "Teatralna",
+        "name:ru": "Театральная",
+        "name:uk": "Театральна",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q2623829",
+        "wikipedia": "uk:Театральна (станція метро, Київ)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.5180449,
+          50.44521
+        ]
+      },
+      "id": "node/7161002667"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/7218139984",
+        "name": "Кловська",
+        "name:en": "Klovska",
+        "name:ru": "Кловская",
+        "name:uk": "Кловська",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q2298547",
+        "wikipedia": "uk:Кловська (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.5319209,
+          50.4369287
+        ]
+      },
+      "id": "node/7218139984"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/7247486081",
+        "alt_name:en": "Palace \"Ukraine\"",
+        "name": "Палац «Україна»",
+        "name:en": "Palats Ukraina",
+        "name:ru": "Дворец «Украина»",
+        "name:uk": "Палац «Україна»",
+        "name:uk-Latn": "Palats Ukraina",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "220",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q2388593",
+        "wikipedia": "uk:Палац «Україна» (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.5213092,
+          50.4206817
+        ]
+      },
+      "id": "node/7247486081"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/8494341367",
+        "construction:public_transport": "station",
+        "construction:railway": "station",
+        "name": "Красный городок",
+        "name:ru": "Красный городок",
+        "name:uk": "Червоне містечко",
+        "station": "subway",
+        "subway": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.8710874,
+          47.9814365
+        ]
+      },
+      "id": "node/8494341367"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/9151090552",
+        "alt_name:nl": "Onafhankelijkheidsplein;Maidanplein",
+        "covered": "yes",
+        "int_name": "Maidan Nezalezhnosti",
+        "line": "Оболонсько-Теремківська лінія",
+        "name": "Майдан Незалежності",
+        "name:bs": "Trg Neovisnosti",
+        "name:de": "Platz der Unabhängigkeit",
+        "name:en": "Independence Square",
+        "name:es": "Plaza de la Independencia",
+        "name:fr": "Place de l'Indépendance",
+        "name:hr": "Trg Neovisnosti",
+        "name:ja": "独立広場",
+        "name:nl": "Majdan Nezalezjnosti",
+        "name:pl": "Plac Niepodległości",
+        "name:ru": "Майдан Незалежности",
+        "name:uk": "Майдан Незалежності",
+        "name:uk-Latn": "Maidan Nezalezhnosti",
+        "name:zh": "独立广场",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "opening_hours": "Mo-Su 05:38-22:38",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "217",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q1864476",
+        "wikipedia": "uk:Майдан Незалежності (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.5244408,
+          50.4499356
+        ]
+      },
+      "id": "node/9151090552"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/9151108492",
+        "line": "Святошинсько-Броварська",
+        "name": "Хрещатик",
+        "name:de": "Chreschtschatyk",
+        "name:en": "Khreschatyk",
+        "name:es": "Jreshchatyk",
+        "name:ru": "Крещатик",
+        "name:uk": "Хрещатик",
+        "name:zh": "赫雷夏蒂克站",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "120",
+        "start_date": "1960-11-06",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q1846051",
+        "wikipedia": "uk:Хрещатик (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.5229456,
+          50.4471871
+        ]
+      },
+      "id": "node/9151108492"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10726000863",
+        "name": "Мінська",
+        "name:de": "Minska",
+        "name:en": "Minska",
+        "name:ru": "Минская",
+        "name:uk": "Мінська",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "211",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q2635654",
+        "wikipedia": "uk:Мінська (станція метро, Київ)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.4985738,
+          50.5121705
+        ]
+      },
+      "id": "node/10726000863"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10726000864",
+        "name": "Почайна",
+        "name:en": "Pochaina",
+        "name:ru": "Почайна",
+        "name:uk": "Почайна",
+        "name:uk-Latn": "Pochaina",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "old_name": "Петрівка",
+        "old_name:en": "Petrivka",
+        "old_name:uk": "Петрівка",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "213",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q2388672",
+        "wikipedia": "uk:Почайна (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.4978905,
+          50.4861951
+        ]
+      },
+      "id": "node/10726000864"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10726000865",
+        "name": "Тараса Шевченка",
+        "name:en": "Tarasa Shevchenka",
+        "name:ru": "Тараса Шевченко",
+        "name:uk": "Тараса Шевченка",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "214",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q2046904",
+        "wikipedia": "uk:Тараса Шевченка (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.5045395,
+          50.4735413
+        ]
+      },
+      "id": "node/10726000865"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10726000866",
+        "name": "Поштова площа",
+        "name:de": "Postplatz",
+        "name:en": "Poshtova Ploshcha",
+        "name:ru": "Почтовая площадь",
+        "name:uk": "Поштова площа",
+        "name:uk-Latn": "Poshtova Ploshcha",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "216",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q2388610",
+        "wikipedia": "uk:Поштова площа (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.5248945,
+          50.4587762
+        ]
+      },
+      "id": "node/10726000866"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10726000867",
+        "name": "Олімпійська",
+        "name:en": "Olimpiiska",
+        "name:ru": "Олимпийская",
+        "name:uk": "Олімпійська",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "219",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q2387897",
+        "wikipedia": "uk:Олімпійська (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.5164035,
+          50.4322821
+        ]
+      },
+      "id": "node/10726000867"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10726000868",
+        "name": "Либідська",
+        "name:en": "Lybidska",
+        "name:ru": "Лыбедская",
+        "name:uk": "Либідська",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "opening_hours": "05:46-21:35",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "221",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q2503994",
+        "wikipedia": "uk:Либідська (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.5248282,
+          50.4131113
+        ]
+      },
+      "id": "node/10726000868"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10726000869",
+        "name": "Деміївська",
+        "name:en": "Demiivska",
+        "name:fr": "Demiïvska",
+        "name:ru": "Демиевская",
+        "name:uk": "Деміївська",
+        "name:uk-Latn": "Demiivska",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "opening_hours": "Mo-Su 05:49-21:34",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "222",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "yes",
+        "wikidata": "Q2069065",
+        "wikipedia": "uk:Деміївська (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.5169137,
+          50.4049317
+        ]
+      },
+      "id": "node/10726000869"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10726000870",
+        "name": "Голосіївська",
+        "name:en": "Holosiivska",
+        "name:ru": "Голосеевская",
+        "name:uk": "Голосіївська",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "opening_hours": "05:52-22:35",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "223",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "yes",
+        "wikidata": "Q1980209",
+        "wikipedia": "uk:Голосіївська (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.5081616,
+          50.3973294
+        ]
+      },
+      "id": "node/10726000870"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10726245814",
+        "name": "Бориспільська",
+        "name:en": "Boryspilska",
+        "name:es": "Boryspilska",
+        "name:ru": "Бориспольская",
+        "name:uk": "Бориспільська",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "326",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "yes",
+        "wikidata": "Q2328814",
+        "wikipedia": "uk:Бориспільська (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.6842649,
+          50.403273
+        ]
+      },
+      "id": "node/10726245814"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10726245815",
+        "name": "Вирлиця",
+        "name:en": "Vyrlytsia",
+        "name:es": "Vyrlytsia",
+        "name:ru": "Вырлица",
+        "name:uk": "Вирлиця",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "325",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "yes",
+        "wikidata": "Q2395599",
+        "wikipedia": "uk:Вирлиця (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.6661156,
+          50.402895
+        ]
+      },
+      "id": "node/10726245815"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10726245816",
+        "name": "Харківська",
+        "name:en": "Kharkivska",
+        "name:es": "Járkivska",
+        "name:ru": "Харьковская",
+        "name:uk": "Харківська",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q1982637",
+        "wikipedia": "uk:Харківська (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.6523061,
+          50.4006902
+        ]
+      },
+      "id": "node/10726245816"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10726245817",
+        "name": "Позняки",
+        "name:en": "Pozniaky",
+        "name:es": "Pozniaky",
+        "name:ru": "Позняки",
+        "name:uk": "Позняки",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q1982618",
+        "wikipedia": "uk:Позняки (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.6346619,
+          50.3978967
+        ]
+      },
+      "id": "node/10726245817"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10726245818",
+        "name": "Звіринецька",
+        "name:en": "Zvirynetska",
+        "name:uk": "Звіринецька",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "old_name": "Дружби народів",
+        "old_name:en": "Druzhby Narodiv",
+        "old_name:uk": "Дружби народів",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "318",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q2395626",
+        "wikipedia": "uk:Звіринецька (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.5450279,
+          50.41825
+        ]
+      },
+      "id": "node/10726245818"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10726245819",
+        "architect": "Целіковська Т. О.",
+        "artist_name": "Бородай А. А.; Бабак А. П.",
+        "name": "Видубичі",
+        "name:en": "Vydubychi",
+        "name:uk": "Видубичі",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "319",
+        "start_date": "1991",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q2395463",
+        "wikipedia": "uk:Видубичі (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.560301,
+          50.4020929
+        ]
+      },
+      "id": "node/10726245819"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10726245820",
+        "name": "Печерська",
+        "name:en": "Pecherska",
+        "name:ru": "Печерская",
+        "name:uk": "Печерська",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "opening_hours": "Mo-Su 05:44-22:38",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "317",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q2217253",
+        "wikipedia": "uk:Печерська (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.5389263,
+          50.4276251
+        ]
+      },
+      "id": "node/10726245820"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10726245822",
+        "name": "Лукʼянівська",
+        "name:en": "Lukianivska",
+        "name:ru": "Лукьяновская",
+        "name:uk": "Лукʼянівська",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "no",
+        "wikidata": "Q2384631",
+        "wikipedia": "uk:Лук'янівська (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.4818047,
+          50.4623623
+        ]
+      },
+      "id": "node/10726245822"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/10726245823",
+        "name": "Святошин",
+        "name:en": "Sviatoshyn",
+        "name:fr": "Sviatochine",
+        "name:ru": "Святошин",
+        "name:uk": "Святошин",
+        "network": "Київський метрополітен",
+        "network:wikidata": "Q215871",
+        "opening_hours": "Mo-Su 05:32-22:30",
+        "operator": "Київський метрополітен",
+        "public_transport": "station",
+        "railway": "station",
+        "ref": "112",
+        "station": "subway",
+        "subway": "yes",
+        "wheelchair": "yes",
+        "wikidata": "Q2265613",
+        "wikipedia": "uk:Святошин (станція метро)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.3908011,
+          50.4578249
+        ]
+      },
+      "id": "node/10726245823"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/11516625549",
+        "construction:public_transport": "station",
+        "construction:railway": "station",
+        "name": "Чумаковская",
+        "name:uk": "Чумаковская",
+        "station": "subway",
+        "subway": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.8873572,
+          47.9806034
+        ]
+      },
+      "id": "node/11516625549"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/11516625563",
+        "construction:public_transport": "station",
+        "construction:railway": "station",
+        "name": "Мушкетовская",
+        "name:uk": "Мушкетовская",
+        "station": "subway",
+        "subway": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.8585267,
+          47.9805024
+        ]
+      },
+      "id": "node/11516625563"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/11516625568",
+        "construction:public_transport": "station",
+        "construction:railway": "station",
+        "name": "Левобережная",
+        "name:uk": "Левобережная",
+        "station": "subway",
+        "subway": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.8343905,
+          47.9808589
+        ]
+      },
+      "id": "node/11516625568"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/11516628781",
+        "construction:public_transport": "station",
+        "construction:railway": "station",
+        "name": "Политехнический институт",
+        "name:uk": "Политехнический институт",
+        "station": "subway",
+        "subway": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          37.8064631,
+          47.9919212
+        ]
+      },
+      "id": "node/11516628781"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/11851223853",
+        "name": "Метробудівників",
+        "name:en": "Metrobudіvnykіv",
+        "name:ru": "Метростроителей",
+        "name:uk": "Метробудівників",
+        "operator": "КП «Харківський метрополітен»",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes",
+        "transport": "subway",
+        "wikidata": "Q919772",
+        "wikipedia": "uk:Метробудівників (станція метро, Харків)"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          36.2624773,
+          49.9782378
+        ]
+      },
+      "id": "node/11851223853"
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "@id": "node/11851223855",
+        "name": "Метробудівників",
+        "name:ru": "Метростроителей",
+        "name:uk": "Метробудівників",
+        "public_transport": "station",
+        "railway": "station",
+        "station": "subway",
+        "subway": "yes"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          36.262536,
+          49.978233
+        ]
+      },
+      "id": "node/11851223855"
+    }
+  ]
+}
