@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import random
+import time
 from datetime import datetime
 import openrouteservice
 import pandas as pd
@@ -16,57 +17,62 @@ from streamlit_folium import st_folium
 @st.cache_data
 def load_data():
     """
-    Downloads all shelters in Ukraine from OpenStreetMap.
-    It caches the result so we don't spam the API server.
+    Loads 'shelters.json' (filters bad stuff) AND 'metro.json' (adds good stuff).
     """
-    # 1. The URL of the API
-    overpass_url = "http://overpass-api.de/api/interpreter"
-
-    # 2. The Query (Language of OpenStreetMap)
-    # We ask for: Nodes, Ways, and Relations with tag "amenity=shelter" in Ukraine
-    overpass_query = """
-    [out:json];
-    area["name:en"="Ukraine"]->.searchArea;
-    (
-      node["amenity"="shelter"](area.searchArea);
-      way["amenity"="shelter"](area.searchArea);
-      relation["amenity"="shelter"](area.searchArea);
-    );
-    out center;
-    """    
-    st.write("Here is the full list of shelters:")
-    st.dataframe(df)
-    # 3. Send the request
+    combined_shelters = []
+    
+    # --- PART 1: Load the Huge File (shelters.json) ---
     try:
-        response = requests.get(overpass_url, params={'data': overpass_query})
-        data = response.json()
-        
-        # 4. Clean the data into a nice list
-        shelters = []
-        for element in data['elements']:
-            # Grab the latitude/longitude
-            lat = element.get('lat')
-            lon = element.get('lon')
-            
-            # Sometimes 'ways' don't have lat/lon directly, they have a 'center'
-            if lat is None and 'center' in element:
-                lat = element['center']['lat']
-                lon = element['center']['lon']
-            
-            # Only add if we found a location
-            if lat and lon:
-                shelters.append({
-                    "name": element.get('tags', {}).get('name', 'Unnamed Shelter'),
-                    "type": element.get('tags', {}).get('shelter_type', 'unknown'),
-                    "lat": lat,
-                    "lon": lon
-                })
-                
-        return pd.DataFrame(shelters)
-
+        with open("shelters.json", "r", encoding="utf-8") as f:
+            data = json.load(f)
+            if 'features' in data:
+                for feature in data['features']:
+                    props = feature.get('properties', {})
+                    geom = feature.get('geometry', {})
+                    
+                    if not geom or 'coordinates' not in geom: 
+                        continue
+                    
+                    # FILTER: Remove bus stops, etc.
+                    bad_data = ["public_transport", "bicycle_parking", "picnic_shelter", "taxi", "bench", "atm"]
+                    s_type = props.get('shelter_type', 'unknown')
+                    amenity = props.get('amenity', 'unknown')
+                    
+                    if s_type in bad_data or amenity in bad_data:
+                        continue
+                        
+                    combined_shelters.append({
+                        "name": props.get('name', 'Unnamed Shelter'),
+                        "type": s_type if s_type != "unknown" else amenity,
+                        "lat": geom['coordinates'][1],
+                        "lon": geom['coordinates'][0]
+                    })
     except Exception as e:
-        st.error(f"⚠️ Could not download data: {e}")
-        return pd.DataFrame() # Return empty table if failed
+        # If file is missing, just print a small warning to the logs, don't crash
+        print(f"Warning: shelters.json error: {e}")
+
+    # --- PART 2: Load the Metro File (metro.json) ---
+    try:
+        with open("metro.json", "r", encoding="utf-8") as f:
+            metro_data = json.load(f)
+            if 'features' in metro_data:
+                for feature in metro_data['features']:
+                    props = feature.get('properties', {})
+                    geom = feature.get('geometry', {})
+                    
+                    combined_shelters.append({
+                        "name": props.get('name', 'Metro Station'),
+                        "type": "metro_station",
+                        "lat": geom['coordinates'][1],
+                        "lon": geom['coordinates'][0]
+                    })
+    except Exception as e:
+        # It is okay if metro.json is missing
+        pass 
+
+    return pd.DataFrame(combined_shelters)
+
+   
 
 # ==========================================
 # API Clients
@@ -1079,11 +1085,19 @@ def main():
 
     if mode == "Live Map":
         # 1. Fetch Data
-        with st.spinner("Fetching real-time data..."):
+        # 1. Fetch Data
+        with st.spinner("Loading shelter database..."):
             alerts_data = alerts_client.get_active_alerts()
-            shelters_raw = osm_client.get_nearby_shelters(user_lat, user_lon, radius=user_settings['max_dist'])
+            
+            # --- CHANGE: Load from file instead of API ---
+            shelters_raw = load_data()
+            # ---------------------------------------------
 
         # 2. Process Data
+        # (We convert the DataFrame to a list of dicts for your processor)
+        if isinstance(shelters_raw, pd.DataFrame):
+            shelters_raw = shelters_raw.to_dict('records')
+            
         shelters_df = processor.process_shelters(shelters_raw, user_lat, user_lon)
 
         if user_settings['selected_type'] != "All":
