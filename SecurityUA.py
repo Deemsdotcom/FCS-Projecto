@@ -12,7 +12,60 @@ from sklearn.linear_model import LinearRegression
 import pydeck as pdk
 import folium
 from streamlit_folium import st_folium
+##### shelters
+@st.cache_data
+def load_data():
+    """
+    Downloads all shelters in Ukraine from OpenStreetMap.
+    It caches the result so we don't spam the API server.
+    """
+    # 1. The URL of the API
+    overpass_url = "http://overpass-api.de/api/interpreter"
 
+    # 2. The Query (Language of OpenStreetMap)
+    # We ask for: Nodes, Ways, and Relations with tag "amenity=shelter" in Ukraine
+    overpass_query = """
+    [out:json];
+    area["name:en"="Ukraine"]->.searchArea;
+    (
+      node["amenity"="shelter"](area.searchArea);
+      way["amenity"="shelter"](area.searchArea);
+      relation["amenity"="shelter"](area.searchArea);
+    );
+    out center;
+    """
+
+    # 3. Send the request
+    try:
+        response = requests.get(overpass_url, params={'data': overpass_query})
+        data = response.json()
+        
+        # 4. Clean the data into a nice list
+        shelters = []
+        for element in data['elements']:
+            # Grab the latitude/longitude
+            lat = element.get('lat')
+            lon = element.get('lon')
+            
+            # Sometimes 'ways' don't have lat/lon directly, they have a 'center'
+            if lat is None and 'center' in element:
+                lat = element['center']['lat']
+                lon = element['center']['lon']
+            
+            # Only add if we found a location
+            if lat and lon:
+                shelters.append({
+                    "name": element.get('tags', {}).get('name', 'Unnamed Shelter'),
+                    "type": element.get('tags', {}).get('shelter_type', 'unknown'),
+                    "lat": lat,
+                    "lon": lon
+                })
+                
+        return pd.DataFrame(shelters)
+
+    except Exception as e:
+        st.error(f"⚠️ Could not download data: {e}")
+        return pd.DataFrame() # Return empty table if failed
 
 # ==========================================
 # API Clients
