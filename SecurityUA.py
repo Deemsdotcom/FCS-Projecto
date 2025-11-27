@@ -34,12 +34,25 @@ def load_data():
                         continue
                     
                     # FILTER: Remove bus stops, etc.
-                    bad_data = ["public_transport", "bicycle_parking", "picnic_shelter", "taxi", "bench", "atm"]
+                    bad_data = [
+                        # Transport (Glass danger)
+                        "public_transport", "taxi", "bus_stop", "platform",
+                        
+                        # Park/Nature (Open sides, no walls)
+                        "picnic_shelter", "gazebo", "lean_to", "weather_shelter", 
+                        "rock_shelter", "sun_shelter", "pergola",
+                        
+                        # Objects/Animals
+                        "bicycle_parking", "bicycle_rental", "field_shelter", 
+                        "bench", "atm", "waste_disposal", "smoking_shelter"
+                    ]
+                    
                     s_type = props.get('shelter_type', 'unknown')
                     amenity = props.get('amenity', 'unknown')
                     
+                    # THE BOUNCER CHECK:
                     if s_type in bad_data or amenity in bad_data:
-                        continue
+                        continue # SKIP IT!
                         
                     combined_shelters.append({
                         "name": props.get('name', 'Unnamed Shelter'),
