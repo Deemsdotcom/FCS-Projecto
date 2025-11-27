@@ -16,55 +16,55 @@ from streamlit_folium import st_folium
 @st.cache_data
 def load_data():
     """
-    Reads 'shelters.json' and filters out bad data (bus stops, bike parking, etc.)
+    Loads 'shelters.json' (filters bad stuff) AND 'metro.json' (adds good stuff).
     """
+    combined_shelters = []
+    
+    # 1. Load the Huge File (And filter out the junk)
     try:
         with open("shelters.json", "r", encoding="utf-8") as f:
             data = json.load(f)
+            if 'features' in data:
+                for feature in data['features']:
+                    props = feature.get('properties', {})
+                    geom = feature.get('geometry', {})
+                    
+                    if not geom or 'coordinates' not in geom: continue
+                    
+                    # FILTER: Remove bus stops, etc.
+                    bad_data = ["public_transport", "bicycle_parking", "picnic_shelter", "taxi", "bench"]
+                    s_type = props.get('shelter_type', 'unknown')
+                    if s_type in bad_data:
+                        continue
+                        
+                    combined_shelters.append({
+                        "name": props.get('name', 'Unnamed Shelter'),
+                        "type": s_type,
+                        "lat": geom['coordinates'][1],
+                        "lon": geom['coordinates'][0]
+                    })
+    except FileNotFoundError:
+        st.warning("Could not find shelters.json")
 
-        shelters = []
-        
-        # Check if the file is GeoJSON (has 'features')
-        if 'features' in data:
-            for feature in data['features']:
-                properties = feature.get('properties', {})
-                geometry = feature.get('geometry', {})
-                
-                # 1. Skip if it has no location
-                if not geometry or 'coordinates' not in geometry:
-                    continue
-                
-                # --- 🚨 FILTERING LOGIC STARTS HERE 🚨 ---
-                
-                # Get the type of shelter
-                s_type = properties.get('shelter_type', 'unknown')
-                amenity = properties.get('amenity', 'unknown')
-                
-                # The "Blacklist": Things we DO NOT want on the map
-                bad_data = [
-                    "public_transport",   # Bus stops
-                    "bicycle_parking",    # Bike racks
-                    "picnic_shelter",     # Park gazebos
-                    "taxi",               # Taxi stands
-                    "bench",              # Benches
-                    "atm"                 # ATMs
-                ]
-                
-                # If the type is in the bad list, SKIP IT
-                if s_type in bad_data or amenity in bad_data:
-                    continue
-                
-                # -----------------------------------------
+    # 2. Load the Metro File (And add it to the list)
+    try:
+        with open("metro.json", "r", encoding="utf-8") as f:
+            metro_data = json.load(f)
+            if 'features' in metro_data:
+                for feature in metro_data['features']:
+                    props = feature.get('properties', {})
+                    geom = feature.get('geometry', {})
+                    
+                    combined_shelters.append({
+                        "name": props.get('name', 'Metro Station'),
+                        "type": "metro_station",  # Force correct type
+                        "lat": geom['coordinates'][1],
+                        "lon": geom['coordinates'][0]
+                    })
+    except FileNotFoundError:
+        pass # It's okay if metro file is missing
 
-                # If it passed the test, add it to the list
-                shelters.append({
-                    "name": properties.get('name', 'Unnamed Shelter'),
-                    "type": s_type if s_type != "unknown" else amenity,
-                    "lat": geometry['coordinates'][1],
-                    "lon": geometry['coordinates'][0]
-                })
-        
-        return pd.DataFrame(shelters)
+    return pd.DataFrame(combined_shelters)
 
     except Exception as e:
         st.error(f"Error reading file: {e}")
