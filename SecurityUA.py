@@ -400,6 +400,189 @@ class Storage:
 # Machine Learning
 # ==========================================
 
+# Constants for ML
+ALERTS_API_BASE_URL = "https://api.alerts.in.ua"
+ALERTS_API_TOKEN = "3b9da58a53b958cab81355b22e3feb9c10593dc4ab2203"
+EAST_UKRAINE_REGION_UIDS = [16, 22, 28]  # Luhansk, Kharkiv, Donetsk
+
+
+@st.cache_data(ttl=3600)
+def load_historical_alerts_for_ml() -> pd.DataFrame:
+    """
+    Downloads and prepares historical alert data from alerts.in.ua for ML.
+    """
+    headers = {"Authorization": f"Bearer {ALERTS_API_TOKEN}"}
+    all_alerts = []
+
+    for uid in EAST_UKRAINE_REGION_UIDS:
+        try:
+            url = f"{ALERTS_API_BASE_URL}/v1/regions/{uid}/alerts/month_ago.json"
+            response = requests.get(url, headers=headers, timeout=10)
+
+            if response.status_code != 200:
+                st.warning(f"Failed to fetch data for region {uid}: {response.status_code}")
+                continue
+
+            data = response.json()
+            alerts = data.get("alerts", [])
+
+            for alert in alerts:
+                # Parse timestamp
+                started_at = pd.to_datetime(alert["started_at"])
+
+                all_alerts.append({
+                    "timestamp": started_at,
+                    "region": alert.get("location_title") or alert.get("location_oblast"),
+                    "alert_active": 1
+                })
+
+        except Exception as e:
+            st.error(f"Error fetching data for region {uid}: {e}")
+            continue
+
+    if not all_alerts:
+        return pd.DataFrame()
+
+    df = pd.DataFrame(all_alerts)
+
+    # Feature Engineering
+    df["month"] = df["timestamp"].dt.month
+    df["day_of_week"] = df["timestamp"].dt.dayofweek
+    df["hour"] = df["timestamp"].dt.hour
+
+    # Build binary target column alert_occurrence
+    # Group by time slots and region to see if an alert existed
+    # We want to know: for a given (month, day, hour), was there an alert?
+    # Since we only have alert events, we need to be careful.
+    # The current approach only has positive samples.
+    # To do this properly for a classifier, we usually need negative samples (times with no alerts).
+    # However, the prompt asks to "Group data by ... If there is at least one alert in that slot, alert_occurrence = 1, else 0."
+    # This implies we might need to generate a grid of all possible hours?
+    # Or just aggregate the existing alert data?
+    # "Return a clean, deduplicated DataFrame with: month, day_of_week, hour, region, alert_occurrence"
+    # If we only use the fetched alerts, we only have 1s.
+    # BUT, the prompt says: "Use real historical data... (not simulated data)".
+    # And "If there is at least one alert in that slot, alert_occurrence = 1, else 0."
+    # If I only have the alerts, I don't have the 0s.
+    # I will implement a simplified version that assumes we are characterizing the *alerts*
+    # OR I should generate a time range and merge.
+    # Given the constraints and the prompt's specific instruction on "Group data by...",
+    # I will assume the user wants me to aggregate the *alert* data.
+    # BUT, to train a classifier, we definitely need 0s.
+    # I will generate a time grid for the last month to create negative samples.
+
+    # Generate full time range for the last 30 days
+    end_date = pd.Timestamp.now(tz='UTC').floor('H')
+    start_date = end_date - pd.Timedelta(days=30)
+    date_range = pd.date_range(start=start_date, end=end_date, freq='H')
+
+    # Create a grid for each region
+    grid_data = []
+    regions = df['region'].unique()
+
+    for region in regions:
+        for dt in date_range:
+            grid_data.append({
+                "timestamp": dt,
+                "region": region,
+                "month": dt.month,
+                "day_of_week": dt.dayofweek,
+                "hour": dt.hour
+            })
+
+    grid_df = pd.DataFrame(grid_data)
+
+    # Mark alerts
+    # We need to check if an alert was active during that hour.
+    # The API gives 'started_at' and 'finished_at'.
+    # The prompt says "For each alert entry, create rows... timestamp: parsed from started_at".
+    # And "Group data by... If there is at least one alert in that slot...".
+    # This suggests we are binning the *start times*?
+    # "If there is at least one alert in that slot" (meaning an alert started in that hour?)
+    # I will follow the prompt literally: "Group data by ["month", "day_of_week", "hour", "region"]... If there is at least one alert in that slot, alert_occurrence = 1".
+    # This implies we are looking at the *presence* of an alert record in that bin.
+    # So I will stick to the prompt's implied logic:
+    # 1. We have a list of alerts with timestamps.
+    # 2. We group them.
+    # 3. But we still need 0s.
+    # I will stick to the grid approach to ensure we have 0s, otherwise the model is useless.
+
+    # Simplified approach to match prompt "Group data by..." likely implies we take the alerts,
+    # and maybe the user assumes we have non-alert data?
+    # "Return a clean, deduplicated DataFrame... alert_occurrence (int, 0 or 1)"
+    # I will generate the grid to be safe and robust.
+
+    # Mark 1s where we have alerts
+    # We'll match on (month, day, hour, region)
+
+    # Create a set of active slots from the alerts
+    active_slots = set(zip(df['month'], df['day_of_week'], df['hour'], df['region']))
+
+    def is_active(row):
+        return 1 if (row['month'], row['day_of_week'], row['hour'], row['region']) in active_slots else 0
+
+    grid_df['alert_occurrence'] = grid_df.apply(is_active, axis=1)
+
+    return grid_df
+
+
+@st.cache_resource(show_spinner=True)
+def train_attack_risk_model(alerts_df: pd.DataFrame):
+    """
+    Prepares features and trains a classifier to predict attack probability.
+    """
+    if alerts_df.empty or "alert_occurrence" not in alerts_df.columns:
+        raise ValueError("Input DataFrame is empty or missing required columns.")
+
+    feature_cols = ["month", "day_of_week", "hour"]
+    X = alerts_df[feature_cols].values
+    y = alerts_df["alert_occurrence"].values
+
+    # Check if we have both classes
+    if len(np.unique(y)) < 2:
+        # Fallback if only one class (e.g. only 0s or only 1s)
+        # This can happen if data is sparse or API fails to give alerts
+        st.warning("Not enough data diversity to train model (only one class present).")
+        return None, float("nan")
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42, stratify=y
+    )
+
+    model = GradientBoostingClassifier(
+        n_estimators=200,
+        learning_rate=0.05,
+        max_depth=3,
+        random_state=42
+    )
+    model.fit(X_train, y_train)
+
+    roc_auc = float("nan")
+    if len(np.unique(y_test)) > 1:
+        y_proba = model.predict_proba(X_test)[:, 1]
+        roc_auc = roc_auc_score(y_test, y_proba)
+
+    return model, roc_auc
+
+
+def predict_attack_probability(model, month: int, day_of_week: int, hour: int) -> float:
+    """
+    Uses the trained model to predict the probability of an attack.
+    """
+    if not (1 <= month <= 12):
+        raise ValueError("Month must be between 1 and 12")
+    if not (0 <= day_of_week <= 6):
+        raise ValueError("Day of week must be between 0 and 6")
+    if not (0 <= hour <= 23):
+        raise ValueError("Hour must be between 0 and 23")
+
+    if model is None:
+        return 0.0
+
+    X_new = np.array([[month, day_of_week, hour]], dtype=float)
+    return model.predict_proba(X_new)[0, 1]
+
+
 class SafetyModel:
     def __init__(self):
         # In a real scenario, we would load a trained model here
@@ -477,7 +660,6 @@ class ReliabilityModel:
                 score -= 1
 
         return score
-
 
 # ==========================================
 # UI Components
