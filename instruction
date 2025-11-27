@@ -1,0 +1,9 @@
+# SecurityUA App
+
+## How to run this project
+1. Install the required libraries:
+   pip install -r requirements.txt
+
+2. Run the app:
+   streamlit run SecurityUA.py
+   If it does not work: python -m streamlit run SecurityUA.py

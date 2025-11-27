@@ -1,0 +1,10 @@
+streamlit
+requests
+openrouteservice
+pandas
+geopy
+scikit-learn
+pydeck
+folium
+streamlit-folium
+numpy
