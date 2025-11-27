@@ -775,15 +775,40 @@ def predict_attack_probability(model, month: int, day_of_week: int, hour: int) -
     X_new = np.array([[month, day_of_week, hour]], dtype=float)
     return model.predict_proba(X_new)[0, 1]
 
+    st.title("Air Alert Attack Risk Model")
 
-class SafetyModel:
-    def __init__(self):
-        # In a real scenario, we would load a trained model here
-        self.model = LinearRegression()
-        # Mock training to initialize the model
-        X_train = np.array([[100, 0], [500, 1], [1000, 1], [200, 0]])  # Distance, Alert Active
-        y_train = np.array([95, 70, 50, 90])  # Safety Score
-        self.model.fit(X_train, y_train)
+    # 1) Load data
+with st.spinner("Loading historical alerts..."):
+        alerts_df = load_historical_alerts_for_ml()
+
+    if alerts_df.empty:
+        st.error("No alert data loaded. Cannot train model.")
+    else:
+        st.success(f"Loaded {len(alerts_df)} rows of alert data.")
+
+        # 2) Train model
+        with st.spinner("Training attack risk model..."):
+            model, roc_auc = train_attack_risk_model(alerts_df)
+
+        if model is None:
+            st.warning("Model could not be trained (only one class present).")
+        else:
+            st.write(f"Model ROC AUC: {roc_auc:.3f}")
+
+            # 3) User inputs for prediction
+            st.subheader("Predict attack probability")
+
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                month = st.number_input("Month (1–12)", min_value=1, max_value=12, value=1)
+            with col2:
+                day_of_week = st.number_input("Day of week (0=Mon ... 6=Sun)", min_value=0, max_value=6, value=0)
+            with col3:
+                hour = st.number_input("Hour (0–23)", min_value=0, max_value=23, value=12)
+
+            if st.button("Predict"):
+                prob = predict_attack_probability(model, month, day_of_week, hour)
+                st.metric("Predicted attack probability", f"{prob:.1%}")
 
     def predict_safety_score(self, distance_m, is_alert_active, protection_score=5):
         """
