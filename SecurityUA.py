@@ -16,57 +16,54 @@ from streamlit_folium import st_folium
 @st.cache_data
 def load_data():
     """
-    Downloads all shelters in Ukraine from OpenStreetMap.
-    It caches the result so we don't spam the API server.
+    Reads the huge 'shelters.json' file and converts it into a clean table.
     """
-    # 1. The URL of the API
-    overpass_url = "http://overpass-api.de/api/interpreter"
-
-    # 2. The Query (Language of OpenStreetMap)
-    # We ask for: Nodes, Ways, and Relations with tag "amenity=shelter" in Ukraine
-    overpass_query = """
-    [out:json][timeout:180];;
-    area["name:en"="Ukraine"]->.searchArea;
-    (
-      node["amenity"="shelter"](area.searchArea);
-      way["amenity"="shelter"](area.searchArea);
-      relation["amenity"="shelter"](area.searchArea);
-    );
-    out center;
-    """    
-    st.write("Here is the full list of shelters:")
-    st.dataframe(df)
-    # 3. Send the request
     try:
-        response = requests.get(overpass_url, params={'data': overpass_query})
-        data = response.json()
-        
-        # 4. Clean the data into a nice list
+        # 1. Open the file
+        with open("shelters.json", "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        # 2. Extract the data (Parsing GeoJSON)
         shelters = []
-        for element in data['elements']:
-            # Grab the latitude/longitude
-            lat = element.get('lat')
-            lon = element.get('lon')
+        
+        # We loop through the "features" list inside the file
+        for feature in data.get('features', []):
+            properties = feature.get('properties', {})
+            geometry = feature.get('geometry', {})
             
-            # Sometimes 'ways' don't have lat/lon directly, they have a 'center'
-            if lat is None and 'center' in element:
-                lat = element['center']['lat']
-                lon = element['center']['lon']
-            
-            # Only add if we found a location
-            if lat and lon:
-                shelters.append({
-                    "name": element.get('tags', {}).get('name', 'Unnamed Shelter'),
-                    "type": element.get('tags', {}).get('shelter_type', 'unknown'),
-                    "lat": lat,
-                    "lon": lon
-                })
+            # Skip entries that don't have a location
+            if not geometry or 'coordinates' not in geometry:
+                continue
                 
+            coords = geometry['coordinates']
+            
+            # GeoJSON stores coordinates as [Longitude, Latitude]
+            # But maps usually want [Latitude, Longitude]. So we extract them carefully:
+            lon = coords[0]
+            lat = coords[1]
+            
+            # Filter out "Bad" shelters (Bus stops, etc.)
+            shelter_type = properties.get('shelter_type', 'unknown')
+            if shelter_type in ["public_transport", "bicycle_parking", "picnic_shelter"]:
+                continue
+
+            # Add to our clean list
+            shelters.append({
+                "name": properties.get('name', 'Unnamed Shelter'),
+                "type": shelter_type,
+                "access": properties.get('access', 'unknown'),
+                "lat": lat,
+                "lon": lon
+            })
+            
         return pd.DataFrame(shelters)
 
+    except FileNotFoundError:
+        st.error("⚠️ Error: Could not find 'shelters.json'. Did you upload it to GitHub?")
+        return pd.DataFrame()
     except Exception as e:
-        st.error(f"⚠️ Could not download data: {e}")
-        return pd.DataFrame() # Return empty table if failed
+        st.error(f"⚠️ Error reading file: {e}")
+        return pd.DataFrame()
 
 # ==========================================
 # API Clients
