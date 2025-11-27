@@ -33,8 +33,9 @@ def load_data():
       relation["amenity"="shelter"](area.searchArea);
     );
     out center;
-    """
-
+    """    
+    st.write("Here is the full list of shelters:")
+    st.dataframe(df)
     # 3. Send the request
     try:
         response = requests.get(overpass_url, params={'data': overpass_query})
