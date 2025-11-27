@@ -20,7 +20,7 @@ def load_data():
     """
     combined_shelters = []
     
-    # 1. Load the Huge File (And filter out the junk)
+    # --- PART 1: Load the Huge File (shelters.json) ---
     try:
         with open("shelters.json", "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -29,24 +29,28 @@ def load_data():
                     props = feature.get('properties', {})
                     geom = feature.get('geometry', {})
                     
-                    if not geom or 'coordinates' not in geom: continue
+                    if not geom or 'coordinates' not in geom: 
+                        continue
                     
                     # FILTER: Remove bus stops, etc.
-                    bad_data = ["public_transport", "bicycle_parking", "picnic_shelter", "taxi", "bench"]
+                    bad_data = ["public_transport", "bicycle_parking", "picnic_shelter", "taxi", "bench", "atm"]
                     s_type = props.get('shelter_type', 'unknown')
-                    if s_type in bad_data:
+                    amenity = props.get('amenity', 'unknown')
+                    
+                    if s_type in bad_data or amenity in bad_data:
                         continue
                         
                     combined_shelters.append({
                         "name": props.get('name', 'Unnamed Shelter'),
-                        "type": s_type,
+                        "type": s_type if s_type != "unknown" else amenity,
                         "lat": geom['coordinates'][1],
                         "lon": geom['coordinates'][0]
                     })
-    except FileNotFoundError:
-        st.warning("Could not find shelters.json")
+    except Exception as e:
+        # If file is missing, just print a small warning to the logs, don't crash
+        print(f"Warning: shelters.json error: {e}")
 
-    # 2. Load the Metro File (And add it to the list)
+    # --- PART 2: Load the Metro File (metro.json) ---
     try:
         with open("metro.json", "r", encoding="utf-8") as f:
             metro_data = json.load(f)
@@ -57,12 +61,13 @@ def load_data():
                     
                     combined_shelters.append({
                         "name": props.get('name', 'Metro Station'),
-                        "type": "metro_station",  # Force correct type
+                        "type": "metro_station",
                         "lat": geom['coordinates'][1],
                         "lon": geom['coordinates'][0]
                     })
-    except FileNotFoundError:
-        pass # It's okay if metro file is missing
+    except Exception as e:
+        # It is okay if metro.json is missing
+        pass 
 
     return pd.DataFrame(combined_shelters)
 
