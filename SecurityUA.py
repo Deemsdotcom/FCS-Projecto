@@ -71,16 +71,7 @@ def load_data():
 
     return pd.DataFrame(combined_shelters)
 
-    except Exception as e:
-        st.error(f"Error reading file: {e}")
-        return pd.DataFrame()
-
-    except FileNotFoundError:
-        st.error("⚠️ Error: Could not find 'shelters.json'. Did you upload it to GitHub?")
-        return pd.DataFrame()
-    except Exception as e:
-        st.error(f"⚠️ Error reading file: {e}")
-        return pd.DataFrame()
+   
 
 # ==========================================
 # API Clients
