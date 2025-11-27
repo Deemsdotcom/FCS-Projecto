@@ -25,7 +25,7 @@ def load_data():
     # 2. The Query (Language of OpenStreetMap)
     # We ask for: Nodes, Ways, and Relations with tag "amenity=shelter" in Ukraine
     overpass_query = """
-    [out:json];
+    [out:json][timeout:180];;
     area["name:en"="Ukraine"]->.searchArea;
     (
       node["amenity"="shelter"](area.searchArea);
