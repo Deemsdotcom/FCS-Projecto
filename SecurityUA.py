@@ -73,66 +73,200 @@ def load_data():
 # ==========================================
 
 class AlertsClient:
+    """
+    Simple client for the Alerts API.
+
+    NOTE: For this project, the API token is hard-coded directly in the code.
+    This is not recommended for production systems, but is acceptable here
+    because your supervisors explicitly approved it.
+    """
+
+    # Base URL of the Alerts API
     BASE_URL = "https://api.alerts.in.ua/v1"
 
-    def __init__(self, api_key=None):
-        self.api_key = api_key
-        if not self.api_key:
-            # Try to load from streamlit secrets
-            try:
-                self.api_key = st.secrets["ALERTS_API_KEY"]
-            except (FileNotFoundError, KeyError):
-                pass
+    def __init__(self):
+        # ------------------------------------------------------------------
+        # THIS IS WHERE YOU PUT YOUR REAL API TOKEN
+        # Paste your real working token between the quotes below:
+        # ------------------------------------------------------------------
+        self.api_key = "3b9da58a53b958cab81355b22e3feb9c10593dc4ab2203"
+        # ------------------------------------------------------------------
 
-    def get_active_alerts(self):
-        """
-        Fetches active alerts. Returns mock data if no API key is present.
-        """
-        if not self.api_key:
-            return self._get_mock_alerts()
+        # Safety check: if token is missing, stop the app with an error
+        if not self.api_key or self.api_key.strip() == "":
+            st.error("API token is missing in the code.")
+            raise ValueError("API token not set in AlertsClient")
 
-        headers = {"Authorization": f"Bearer {self.api_key}"}
-        try:
-            response = requests.get(f"{self.BASE_URL}/alerts/active.json", headers=headers)
-            response.raise_for_status()
-            return response.json()
-        except requests.RequestException as e:
-            st.error(f"Error fetching alerts: {e}")
-            return self._get_mock_alerts()
+    def get_active_alerts(self) -> dict:
+        """
+        Fetches the currently active alerts from the real API.
+        Returns:
+            dict: JSON response from the API.
+        Raises:
+            requests.HTTPError or other RequestException on failure.
+        """
 
-    def _get_mock_alerts(self):
-        """
-        Generates mock alert data for demonstration purposes.
-        """
-        # Mocking a few regions with alerts
-        mock_data = {
-            "alerts": [
-                {
-                    "id": 1,
-                    "location_title": "Kyiv Oblast",
-                    "location_type": "oblast",
-                    "started_at": datetime.now().isoformat(),
-                    "finished_at": None,
-                    "alert_type": "air_raid",
-                    "notes": "Simulated alert"
-                },
-                {
-                    "id": 2,
-                    "location_title": "Kharkiv Oblast",
-                    "location_type": "oblast",
-                    "started_at": datetime.now().isoformat(),
-                    "finished_at": None,
-                    "alert_type": "artillery_shelling",
-                    "notes": "Simulated alert"
-                }
-            ],
-            "meta": {
-                "last_updated_at": datetime.now().isoformat(),
-                "type": "mock"
-            }
+        # The API requires the token in the Authorization header
+        headers = {
+            "Authorization": f"Bearer {self.api_key}"
         }
-        return mock_data
 
+        # Send a GET request to the /alerts/active.json endpoint
+        response = requests.get(
+            f"{self.BASE_URL}/alerts/active.json",
+            headers=headers,
+            timeout=10,  # seconds
+        )
+
+        # Raise an error if the response status is not 2xx
+        response.raise_for_status()
+
+        # Convert the response body to JSON and return it
+        return response.json()
+
+
+def build_alerts_dataframe(alerts_json: dict) -> pd.DataFrame:
+    """
+    Converts the API JSON response into a pandas DataFrame that is easy to display.
+
+    Expected JSON structure (simplified example):
+    {
+        "alerts": [
+            {
+                "id": 1,
+                "location_title": "Kyiv Oblast",
+                "location_type": "oblast",
+                "started_at": "...",
+                "finished_at": null,
+                "alert_type": "air_raid",
+                "notes": "..."
+            },
+            ...
+        ],
+        "meta": { ... }
+    }
+    """
+    alerts_list = alerts_json.get("alerts", [])
+
+    if not alerts_list:
+        return pd.DataFrame()
+
+    df = pd.DataFrame(alerts_list)
+
+    # Choose and reorder columns if they exist
+    preferred_columns = [
+        "id",
+        "location_title",
+        "location_type",
+        "alert_type",
+        "started_at",
+        "finished_at",
+        "notes",
+    ]
+    existing_columns = [c for c in preferred_columns if c in df.columns]
+    df = df[existing_columns]
+
+    # Convert timestamps to nicer datetime format if they exist
+    for col in ["started_at", "finished_at"]:
+        if col in df.columns:
+            df[col] = pd.to_datetime(df[col], errors="coerce")
+
+    return df
+
+
+def main():
+    # Basic page configuration
+    st.set_page_config(
+        page_title="SecurityUA – Ukraine Air Alerts",
+        layout="wide",
+    )
+
+    st.title("🛡️ SecurityUA – Ukraine Air Alerts Monitor")
+
+    # Sidebar controls
+    st.sidebar.header("Settings")
+
+    # Auto-refresh interval (in seconds)
+    refresh_interval = st.sidebar.slider(
+        "Auto-refresh interval (seconds)",
+        min_value=10,
+        max_value=300,
+        value=60,
+        step=10,
+        help="How often the page should automatically reload data.",
+    )
+
+    auto_refresh = st.sidebar.checkbox(
+        "Enable auto-refresh",
+        value=True,
+        help="If enabled, the app will reload automatically every X seconds.",
+    )
+
+    # Initialize client
+    client = AlertsClient()
+
+    # Fetch data and show live status indicator
+    try:
+        alerts_json = client.get_active_alerts()
+        last_updated = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # Live status indicator (green)
+        st.success(f"✅ Connected to Alerts API · Last update: {last_updated}")
+
+    except requests.RequestException as e:
+        # Live status indicator (red)
+        st.error(f"❌ Could not fetch alerts from API: {e}")
+        alerts_json = None
+
+    # Only proceed if we have data
+    if alerts_json:
+        df = build_alerts_dataframe(alerts_json)
+
+        if df.empty:
+            st.warning("No active alerts were returned by the API.")
+        else:
+            # Sidebar filter: region / location_title
+            if "location_title" in df.columns:
+                regions = sorted(df["location_title"].dropna().unique().tolist())
+                selected_region = st.sidebar.selectbox(
+                    "Filter by region",
+                    options=["All regions"] + regions,
+                    index=0,
+                )
+
+                if selected_region != "All regions":
+                    df = df[df["location_title"] == selected_region]
+
+            # Show summary
+            st.subheader("Active alerts")
+
+            st.write(f"Number of active alerts: **{len(df)}**")
+
+            # Display the table in a clean way
+            st.dataframe(
+                df,
+                use_container_width=True,
+            )
+
+            # Optionally show raw JSON for debugging / curiosity
+            with st.expander("Show raw API response (JSON)"):
+                st.json(alerts_json)
+
+    # Auto-refresh logic (simple server-side loop)
+    # If auto-refresh is enabled, wait for the chosen interval
+    # and then rerun the app.
+    if auto_refresh:
+        # Small caption at the bottom to indicate refresh timing
+        st.caption(
+            f"🔄 Auto-refresh is ON · The page will reload every {refresh_interval} seconds."
+        )
+        # Sleep, then rerun
+        time.sleep(refresh_interval)
+        st.experimental_rerun()
+    else:
+        st.caption("⏸️ Auto-refresh is OFF.")
+if __name__ == "__main__":
+    main()
 
 class OSMClient:
     OVERPASS_URL = "https://overpass-api.de/api/interpreter"
