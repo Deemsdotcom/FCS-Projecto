@@ -942,11 +942,19 @@ def main():
 
     if mode == "Live Map":
         # 1. Fetch Data
-        with st.spinner("Fetching real-time data..."):
+        # 1. Fetch Data
+        with st.spinner("Loading shelter database..."):
             alerts_data = alerts_client.get_active_alerts()
-            shelters_raw = osm_client.get_nearby_shelters(user_lat, user_lon, radius=user_settings['max_dist'])
+            
+            # --- CHANGE: Load from file instead of API ---
+            shelters_raw = load_data()
+            # ---------------------------------------------
 
         # 2. Process Data
+        # (We convert the DataFrame to a list of dicts for your processor)
+        if isinstance(shelters_raw, pd.DataFrame):
+            shelters_raw = shelters_raw.to_dict('records')
+            
         shelters_df = processor.process_shelters(shelters_raw, user_lat, user_lon)
 
         if user_settings['selected_type'] != "All":
