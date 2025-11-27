@@ -271,8 +271,7 @@ def main():
         st.experimental_rerun()
     else:
         st.caption("⏸️ Auto-refresh is OFF.")
-if __name__ == "__main__":
-    main()
+
 
 class OSMClient:
     OVERPASS_URL = "https://overpass-api.de/api/interpreter"
