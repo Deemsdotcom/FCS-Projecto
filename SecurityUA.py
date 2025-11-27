@@ -16,47 +16,59 @@ from streamlit_folium import st_folium
 @st.cache_data
 def load_data():
     """
-    Reads the huge 'shelters.json' file and converts it into a clean table.
+    Reads 'shelters.json' and filters out bad data (bus stops, bike parking, etc.)
     """
     try:
-        # 1. Open the file
         with open("shelters.json", "r", encoding="utf-8") as f:
             data = json.load(f)
 
-        # 2. Extract the data (Parsing GeoJSON)
         shelters = []
         
-        # We loop through the "features" list inside the file
-        for feature in data.get('features', []):
-            properties = feature.get('properties', {})
-            geometry = feature.get('geometry', {})
-            
-            # Skip entries that don't have a location
-            if not geometry or 'coordinates' not in geometry:
-                continue
+        # Check if the file is GeoJSON (has 'features')
+        if 'features' in data:
+            for feature in data['features']:
+                properties = feature.get('properties', {})
+                geometry = feature.get('geometry', {})
                 
-            coords = geometry['coordinates']
-            
-            # GeoJSON stores coordinates as [Longitude, Latitude]
-            # But maps usually want [Latitude, Longitude]. So we extract them carefully:
-            lon = coords[0]
-            lat = coords[1]
-            
-            # Filter out "Bad" shelters (Bus stops, etc.)
-            shelter_type = properties.get('shelter_type', 'unknown')
-            if shelter_type in ["public_transport", "bicycle_parking", "picnic_shelter"]:
-                continue
+                # 1. Skip if it has no location
+                if not geometry or 'coordinates' not in geometry:
+                    continue
+                
+                # --- 🚨 FILTERING LOGIC STARTS HERE 🚨 ---
+                
+                # Get the type of shelter
+                s_type = properties.get('shelter_type', 'unknown')
+                amenity = properties.get('amenity', 'unknown')
+                
+                # The "Blacklist": Things we DO NOT want on the map
+                bad_data = [
+                    "public_transport",   # Bus stops
+                    "bicycle_parking",    # Bike racks
+                    "picnic_shelter",     # Park gazebos
+                    "taxi",               # Taxi stands
+                    "bench",              # Benches
+                    "atm"                 # ATMs
+                ]
+                
+                # If the type is in the bad list, SKIP IT
+                if s_type in bad_data or amenity in bad_data:
+                    continue
+                
+                # -----------------------------------------
 
-            # Add to our clean list
-            shelters.append({
-                "name": properties.get('name', 'Unnamed Shelter'),
-                "type": shelter_type,
-                "access": properties.get('access', 'unknown'),
-                "lat": lat,
-                "lon": lon
-            })
-            
+                # If it passed the test, add it to the list
+                shelters.append({
+                    "name": properties.get('name', 'Unnamed Shelter'),
+                    "type": s_type if s_type != "unknown" else amenity,
+                    "lat": geometry['coordinates'][1],
+                    "lon": geometry['coordinates'][0]
+                })
+        
         return pd.DataFrame(shelters)
+
+    except Exception as e:
+        st.error(f"Error reading file: {e}")
+        return pd.DataFrame()
 
     except FileNotFoundError:
         st.error("⚠️ Error: Could not find 'shelters.json'. Did you upload it to GitHub?")
