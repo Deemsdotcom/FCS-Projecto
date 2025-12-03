@@ -611,7 +611,7 @@ class Storage:
 # ==========================================
 
 # Constants for ML
-ALERTS_API_BASE_URL = "https://api.alerts.in.ua"
+ALERTS_API_BASE_URL = "https://api.alerts.in.ua/v1"
 ALERTS_API_TOKEN = "3b9da58a53b958cab81355b22e3feb9c10593dc4ab2203"
 EAST_UKRAINE_REGION_UIDS = [16, 22, 28]  # Luhansk, Kharkiv, Donetsk
 
