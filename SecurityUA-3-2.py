@@ -16,6 +16,7 @@ from streamlit_folium import st_folium
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import roc_auc_score
+import math
 
 ##### shelters
 @st.cache_data
@@ -151,23 +152,6 @@ class AlertsClient:
 def build_alerts_dataframe(alerts_json: dict) -> pd.DataFrame:
     """
     Converts the API JSON response into a pandas DataFrame that is easy to display.
-
-    Expected JSON structure (simplified example):
-    {
-        "alerts": [
-            {
-                "id": 1,
-                "location_title": "Kyiv Oblast",
-                "location_type": "oblast",
-                "started_at": "...",
-                "finished_at": null,
-                "alert_type": "air_raid",
-                "notes": "..."
-            },
-            ...
-        ],
-        "meta": { ... }
-    }
     """
     alerts_list = alerts_json.get("alerts", [])
 
@@ -1174,9 +1158,68 @@ def main():
 
     elif mode == "Analytics":
         st.subheader("📊 Historical Analysis")
-        st.info("This section would visualize historical alert patterns and shelter reliability trends.")
-        # Placeholder for analytics
-        st.bar_chart({"Kyiv": 10, "Lviv": 5, "Kharkiv": 15})
+        st.info("This section visualizes historical alert patterns and the attack-risk ML model.")
+
+        with st.spinner("Loading historical alert data and training model..."):
+            try:
+                alerts_df = load_historical_alerts_for_ml()
+            except Exception as e:
+                st.error(f"Failed to load historical alerts: {e}")
+                alerts_df = pd.DataFrame()
+
+            if alerts_df.empty:
+                st.warning("No historical alert data available for ML. The Analytics view needs API access and historical alerts to run the ML.")
+                st.stop()
+
+            st.success(f"Loaded {len(alerts_df)} hourly slots across {alerts_df['region'].nunique()} regions.")
+
+            # Show a small sample for transparency
+            st.subheader("Sample of prepared training data")
+            st.dataframe(alerts_df.head())
+
+            # Train model
+            model, roc_auc = train_attack_risk_model(alerts_df)
+
+        if model is None:
+            st.warning("Model could not be trained (likely not enough positive/negative examples). Try again later or check data source.")
+        else:
+            st.subheader("Model Performance")
+            if not math.isnan(roc_auc):
+                st.metric("ROC AUC", f"{roc_auc:.3f}")
+            else:
+                st.write("ROC AUC: N/A (not enough class balance in test set)")
+
+            st.markdown("#### Predictive Insights")
+            # Let user pick month and day-of-week to visualize hourly probability profile
+            now = pd.Timestamp.now()
+            selected_month = st.selectbox("Month", list(range(1,13)), index=now.month-1)
+            dayname_map = {0: "Monday", 1: "Tuesday", 2: "Wednesday", 3: "Thursday", 4: "Friday", 5: "Saturday", 6: "Sunday"}
+            selected_day_name = st.selectbox("Day of week", list(dayname_map.values()), index=now.dayofweek)
+            # map back to integer
+            selected_day = [k for k, v in dayname_map.items() if v == selected_day_name][0]
+
+            # Build hourly predictions for the selected month/day
+            hours = list(range(24))
+            X_new = np.array([[selected_month, selected_day, h] for h in hours], dtype=float)
+            try:
+                probs = model.predict_proba(X_new)[:, 1]
+            except Exception as e:
+                st.error(f"Prediction error: {e}")
+                probs = np.zeros(len(hours))
+
+            profile_df = pd.DataFrame({"hour": hours, "probability": probs})
+
+            st.line_chart(profile_df.set_index('hour'))
+
+            # Show peak hours
+            top_hours = profile_df.sort_values("probability", ascending=False).head(5)
+            st.subheader("Top 5 highest-risk hours (predicted)")
+            st.table(top_hours.assign(hour=lambda d: d['hour'].astype(int)).reset_index(drop=True))
+
+            st.markdown("#### Regional Summary (sample)")
+            # Show a small grouped summary: fraction of hours with alerts per region in the prepared grid
+            region_summary = alerts_df.groupby('region')['alert_occurrence'].mean().sort_values(ascending=False).head(20)
+            st.bar_chart(region_summary)
 
     else:
         st.subheader("ℹ️ About Project")
