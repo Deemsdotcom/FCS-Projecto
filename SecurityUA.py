@@ -13,6 +13,10 @@ from sklearn.linear_model import LinearRegression
 import pydeck as pdk
 import folium
 from streamlit_folium import st_folium
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.metrics import roc_auc_score
+
 ##### shelters
 @st.cache_data
 def load_data():
