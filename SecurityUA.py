@@ -1125,7 +1125,7 @@ def main():
 
         is_alert_active = any(a['alert_type'] == 'air_raid' for a in alerts_data.get('alerts', []))
 
-        safety_score = 0
+        
         time_to_danger = 0
         route_geojson = None
 
