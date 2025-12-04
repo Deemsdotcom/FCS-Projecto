@@ -827,6 +827,34 @@ else:
             prob = predict_attack_probability(model, month, day_of_week, hour)
             st.metric("Predicted attack probability", f"{prob:.1%}")
 
+class SafetyModel:
+    def __init__(self):
+        # Placeholder for a real model – you can later plug in ML here if you want
+        pass
+
+    def predict_safety_score(self, distance_m, is_alert_active, protection_score=5):
+        """
+        Predicts a safety score (0-100) based on distance, alert status, and shelter protection.
+        """
+        # Simple heuristic: closer & better-protected shelters are safer
+        base_score = 100 - (distance_m / 50)  # lose 1 point every 50 m
+
+        # Bonus for good protection
+        base_score += (protection_score - 5) * 2
+
+        if is_alert_active:
+            base_score -= 20
+
+        # Clamp between 0 and 100
+        return max(0, min(100, base_score))
+
+    def predict_time_to_danger(self, region_id):
+        """
+        Mock prediction for time to danger in minutes.
+        """
+        # Random prediction for demo purposes
+        return random.randint(5, 30)
+
 class ReliabilityModel:
     def calculate_reliability(self, ratings_df, shelter_id):
         """
@@ -1084,6 +1112,7 @@ def main():
     routing_client = RoutingClient()
     processor = DataProcessor()
     map_component = MapComponent()
+    safety_model = SafetyModel()
     dashboard = Dashboard()
     # Pass nominatim client to sidebar
     nominatim_client = NominatimClient()
@@ -1125,7 +1154,7 @@ def main():
 
         is_alert_active = any(a['alert_type'] == 'air_raid' for a in alerts_data.get('alerts', []))
 
-        
+        safety_score = 0
         time_to_danger = 0
         route_geojson = None
 
