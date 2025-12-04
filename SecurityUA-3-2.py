@@ -16,6 +16,7 @@ from streamlit_folium import st_folium
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import roc_auc_score
+import math
 
 ##### shelters
 @st.cache_data
@@ -151,23 +152,6 @@ class AlertsClient:
 def build_alerts_dataframe(alerts_json: dict) -> pd.DataFrame:
     """
     Converts the API JSON response into a pandas DataFrame that is easy to display.
-
-    Expected JSON structure (simplified example):
-    {
-        "alerts": [
-            {
-                "id": 1,
-                "location_title": "Kyiv Oblast",
-                "location_type": "oblast",
-                "started_at": "...",
-                "finished_at": null,
-                "alert_type": "air_raid",
-                "notes": "..."
-            },
-            ...
-        ],
-        "meta": { ... }
-    }
     """
     alerts_list = alerts_json.get("alerts", [])
 
@@ -611,44 +595,44 @@ class Storage:
 # ==========================================
 
 # Constants for ML
-ALERTS_API_BASE_URL = "https://api.alerts.in.ua/v1"
+ALERTS_API_BASE_URL = "https://api.alerts.in.ua"
 ALERTS_API_TOKEN = "3b9da58a53b958cab81355b22e3feb9c10593dc4ab2203"
-EAST_UKRAINE_REGION_UIDS = [16, 22, 28]  # Luhansk, Kharkiv, Donetsk
 
 
 @st.cache_data(ttl=3600)
 def load_historical_alerts_for_ml() -> pd.DataFrame:
     """
     Downloads and prepares historical alert data from alerts.in.ua for ML.
+    Fetches data from all regions across Ukraine.
     """
     headers = {"Authorization": f"Bearer {ALERTS_API_TOKEN}"}
     all_alerts = []
 
-    for uid in EAST_UKRAINE_REGION_UIDS:
-        try:
-            url = f"{ALERTS_API_BASE_URL}/v1/regions/{uid}/alerts/month_ago.json"
-            response = requests.get(url, headers=headers, timeout=10)
+    try:
+        # Fetch historical alerts for the entire country
+        url = f"{ALERTS_API_BASE_URL}/v1/alerts/month_ago.json"
+        response = requests.get(url, headers=headers, timeout=10)
 
-            if response.status_code != 200:
-                st.warning(f"Failed to fetch data for region {uid}: {response.status_code}")
-                continue
+        if response.status_code != 200:
+            st.warning(f"Failed to fetch alert data: {response.status_code}")
+            return pd.DataFrame()
 
-            data = response.json()
-            alerts = data.get("alerts", [])
+        data = response.json()
+        alerts = data.get("alerts", [])
 
-            for alert in alerts:
-                # Parse timestamp
-                started_at = pd.to_datetime(alert["started_at"])
+        for alert in alerts:
+            # Parse timestamp
+            started_at = pd.to_datetime(alert["started_at"])
 
-                all_alerts.append({
-                    "timestamp": started_at,
-                    "region": alert.get("location_title") or alert.get("location_oblast"),
-                    "alert_active": 1
-                })
+            all_alerts.append({
+                "timestamp": started_at,
+                "region": alert.get("location_title") or alert.get("location_oblast"),
+                "alert_active": 1
+            })
 
-        except Exception as e:
-            st.error(f"Error fetching data for region {uid}: {e}")
-            continue
+    except Exception as e:
+        st.error(f"Error fetching alert data: {e}")
+        return pd.DataFrame()
 
     if not all_alerts:
         return pd.DataFrame()
@@ -660,26 +644,12 @@ def load_historical_alerts_for_ml() -> pd.DataFrame:
     df["day_of_week"] = df["timestamp"].dt.dayofweek
     df["hour"] = df["timestamp"].dt.hour
 
-    # Build binary target column alert_occurrence
-    # Group by time slots and region to see if an alert existed
-    # We want to know: for a given (month, day, hour), was there an alert?
-    # Since we only have alert events, we need to be careful.
-    # The current approach only has positive samples.
-    # To do this properly for a classifier, we usually need negative samples (times with no alerts).
-    # However, the prompt asks to "Group data by ... If there is at least one alert in that slot, alert_occurrence = 1, else 0."
-    # This implies we might need to generate a grid of all possible hours?
-    # Or just aggregate the existing alert data?
-    # "Return a clean, deduplicated DataFrame with: month, day_of_week, hour, region, alert_occurrence"
-    # If we only use the fetched alerts, we only have 1s.
-    # BUT, the prompt says: "Use real historical data... (not simulated data)".
-    # And "If there is at least one alert in that slot, alert_occurrence = 1, else 0."
-    # If I only have the alerts, I don't have the 0s.
-    # I will implement a simplified version that assumes we are characterizing the *alerts*
-    # OR I should generate a time range and merge.
-    # Given the constraints and the prompt's specific instruction on "Group data by...",
-    # I will assume the user wants me to aggregate the *alert* data.
-    # BUT, to train a classifier, we definitely need 0s.
-    # I will generate a time grid for the last month to create negative samples.
+    # NOTE: Building the training dataset for the ML model
+    # The API only returns alert *events* (positive samples), but we need both
+    # positive and negative examples for a classifier to work properly.
+    # Solution: Generate a full 30-day time grid for each region, then mark
+    # which (month, day_of_week, hour, region) tuples had at least one alert.
+    # This gives us the balance of 0s and 1s the model needs.
 
     # Generate full time range for the last 30 days
     end_date = pd.Timestamp.now(tz='UTC').floor('H')
@@ -702,30 +672,9 @@ def load_historical_alerts_for_ml() -> pd.DataFrame:
 
     grid_df = pd.DataFrame(grid_data)
 
-    # Mark alerts
-    # We need to check if an alert was active during that hour.
-    # The API gives 'started_at' and 'finished_at'.
-    # The prompt says "For each alert entry, create rows... timestamp: parsed from started_at".
-    # And "Group data by... If there is at least one alert in that slot...".
-    # This suggests we are binning the *start times*?
-    # "If there is at least one alert in that slot" (meaning an alert started in that hour?)
-    # I will follow the prompt literally: "Group data by ["month", "day_of_week", "hour", "region"]... If there is at least one alert in that slot, alert_occurrence = 1".
-    # This implies we are looking at the *presence* of an alert record in that bin.
-    # So I will stick to the prompt's implied logic:
-    # 1. We have a list of alerts with timestamps.
-    # 2. We group them.
-    # 3. But we still need 0s.
-    # I will stick to the grid approach to ensure we have 0s, otherwise the model is useless.
-
-    # Simplified approach to match prompt "Group data by..." likely implies we take the alerts,
-    # and maybe the user assumes we have non-alert data?
-    # "Return a clean, deduplicated DataFrame... alert_occurrence (int, 0 or 1)"
-    # I will generate the grid to be safe and robust.
-
-    # Mark 1s where we have alerts
-    # We'll match on (month, day, hour, region)
-
-    # Create a set of active slots from the alerts
+    # Now mark which slots had alerts. We're using the alert start time
+    # (started_at) and grouping by (month, day_of_week, hour, region).
+    # If an alert started during that hour in that region, mark it as 1.
     active_slots = set(zip(df['month'], df['day_of_week'], df['hour'], df['region']))
 
     def is_active(row):
@@ -792,40 +741,15 @@ def predict_attack_probability(model, month: int, day_of_week: int, hour: int) -
     X_new = np.array([[month, day_of_week, hour]], dtype=float)
     return model.predict_proba(X_new)[0, 1]
 
-    st.title("Air Alert Attack Risk Model")
 
-    # 1) Load data
-with st.spinner("Loading historical alerts..."):
-        alerts_df = load_historical_alerts_for_ml()
-
-    if alerts_df.empty:
-        st.error("No alert data loaded. Cannot train model.")
-    else:
-        st.success(f"Loaded {len(alerts_df)} rows of alert data.")
-
-        # 2) Train model
-        with st.spinner("Training attack risk model..."):
-            model, roc_auc = train_attack_risk_model(alerts_df)
-
-        if model is None:
-            st.warning("Model could not be trained (only one class present).")
-        else:
-            st.write(f"Model ROC AUC: {roc_auc:.3f}")
-
-            # 3) User inputs for prediction
-            st.subheader("Predict attack probability")
-
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                month = st.number_input("Month (1–12)", min_value=1, max_value=12, value=1)
-            with col2:
-                day_of_week = st.number_input("Day of week (0=Mon ... 6=Sun)", min_value=0, max_value=6, value=0)
-            with col3:
-                hour = st.number_input("Hour (0–23)", min_value=0, max_value=23, value=12)
-
-            if st.button("Predict"):
-                prob = predict_attack_probability(model, month, day_of_week, hour)
-                st.metric("Predicted attack probability", f"{prob:.1%}")
+class SafetyModel:
+    def __init__(self):
+        # In a real scenario, we would load a trained model here
+        self.model = LinearRegression()
+        # Mock training to initialize the model
+        X_train = np.array([[100, 0], [500, 1], [1000, 1], [200, 0]])  # Distance, Alert Active
+        y_train = np.array([95, 70, 50, 90])  # Safety Score
+        self.model.fit(X_train, y_train)
 
     def predict_safety_score(self, distance_m, is_alert_active, protection_score=5):
         """
@@ -1006,9 +930,7 @@ class Sidebar:
             "Kharkiv": {"lat": 49.9935, "lon": 36.2304},
             "Odesa": {"lat": 46.4825, "lon": 30.7233},
             "Dnipro": {"lat": 48.4647, "lon": 35.0462},
-            "Donetsk": {"lat": 48.0159, "lon": 37.8028},
-            "Lviv": {"lat": 49.8397, "lon": 24.0297},
-            "East Ukraine": {"lat": 49.0, "lon": 36.0}
+            "Lviv": {"lat": 49.8397, "lon": 24.0297}
         }
 
     def render(self):
@@ -1030,7 +952,7 @@ class Sidebar:
 
         if input_method == "City Selection":
             city_name = st.sidebar.selectbox("Select City", list(self.cities.keys()),
-                                             index=list(self.cities.keys()).index("East Ukraine"))
+                                             index=0)  # Default to Kyiv
             coords = self.cities[city_name]
             lat, lon = coords['lat'], coords['lon']
             # Update session state immediately
@@ -1113,7 +1035,7 @@ def main():
     nominatim_client = NominatimClient()
     sidebar = Sidebar(nominatim_client)
 
-    st.title("🛡️ Safe Shelter Ukraine")
+    st.title("🚨 Safe Shelter Ukraine")
     st.markdown("### Real-time Air Raid Alerts & Safe Shelter Locator")
 
     # Sidebar Controls
@@ -1236,9 +1158,68 @@ def main():
 
     elif mode == "Analytics":
         st.subheader("📊 Historical Analysis")
-        st.info("This section would visualize historical alert patterns and shelter reliability trends.")
-        # Placeholder for analytics
-        st.bar_chart({"Kyiv": 10, "Lviv": 5, "Kharkiv": 15})
+        st.info("This section visualizes historical alert patterns and the attack-risk ML model.")
+
+        with st.spinner("Loading historical alert data and training model..."):
+            try:
+                alerts_df = load_historical_alerts_for_ml()
+            except Exception as e:
+                st.error(f"Failed to load historical alerts: {e}")
+                alerts_df = pd.DataFrame()
+
+            if alerts_df.empty:
+                st.warning("No historical alert data available for ML. The Analytics view needs API access and historical alerts to run the ML.")
+                st.stop()
+
+            st.success(f"Loaded {len(alerts_df)} hourly slots across {alerts_df['region'].nunique()} regions.")
+
+            # Show a small sample for transparency
+            st.subheader("Sample of prepared training data")
+            st.dataframe(alerts_df.head())
+
+            # Train model
+            model, roc_auc = train_attack_risk_model(alerts_df)
+
+        if model is None:
+            st.warning("Model could not be trained (likely not enough positive/negative examples). Try again later or check data source.")
+        else:
+            st.subheader("Model Performance")
+            if not math.isnan(roc_auc):
+                st.metric("ROC AUC", f"{roc_auc:.3f}")
+            else:
+                st.write("ROC AUC: N/A (not enough class balance in test set)")
+
+            st.markdown("#### Predictive Insights")
+            # Let user pick month and day-of-week to visualize hourly probability profile
+            now = pd.Timestamp.now()
+            selected_month = st.selectbox("Month", list(range(1,13)), index=now.month-1)
+            dayname_map = {0: "Monday", 1: "Tuesday", 2: "Wednesday", 3: "Thursday", 4: "Friday", 5: "Saturday", 6: "Sunday"}
+            selected_day_name = st.selectbox("Day of week", list(dayname_map.values()), index=now.dayofweek)
+            # map back to integer
+            selected_day = [k for k, v in dayname_map.items() if v == selected_day_name][0]
+
+            # Build hourly predictions for the selected month/day
+            hours = list(range(24))
+            X_new = np.array([[selected_month, selected_day, h] for h in hours], dtype=float)
+            try:
+                probs = model.predict_proba(X_new)[:, 1]
+            except Exception as e:
+                st.error(f"Prediction error: {e}")
+                probs = np.zeros(len(hours))
+
+            profile_df = pd.DataFrame({"hour": hours, "probability": probs})
+
+            st.line_chart(profile_df.set_index('hour'))
+
+            # Show peak hours
+            top_hours = profile_df.sort_values("probability", ascending=False).head(5)
+            st.subheader("Top 5 highest-risk hours (predicted)")
+            st.table(top_hours.assign(hour=lambda d: d['hour'].astype(int)).reset_index(drop=True))
+
+            st.markdown("#### Regional Summary (sample)")
+            # Show a small grouped summary: fraction of hours with alerts per region in the prepared grid
+            region_summary = alerts_df.groupby('region')['alert_occurrence'].mean().sort_values(ascending=False).head(20)
+            st.bar_chart(region_summary)
 
     else:
         st.subheader("ℹ️ About Project")
