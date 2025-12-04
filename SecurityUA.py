@@ -792,10 +792,10 @@ def predict_attack_probability(model, month: int, day_of_week: int, hour: int) -
     X_new = np.array([[month, day_of_week, hour]], dtype=float)
     return model.predict_proba(X_new)[0, 1]
 
-    st.title("Air Alert Attack Risk Model")
+st.title("Air Alert Attack Risk Model")
 
     # 1) Load data
-with st.spinner("Loading historical alerts..."):
+    with st.spinner("Loading historical alerts..."):
         alerts_df = load_historical_alerts_for_ml()
 
     if alerts_df.empty:
