@@ -827,29 +827,6 @@ else:
             prob = predict_attack_probability(model, month, day_of_week, hour)
             st.metric("Predicted attack probability", f"{prob:.1%}")
 
-    def predict_safety_score(self, distance_m, is_alert_active, protection_score=5):
-        """
-        Predicts a safety score (0-100) based on distance, alert status, and shelter protection.
-        """
-        # Simple heuristic fallback if model fails or for better control
-        base_score = 100 - (distance_m / 50)  # Lose 1 point every 50m
-
-        # Bonus for good protection
-        base_score += (protection_score - 5) * 2
-
-        if is_alert_active:
-            base_score -= 20
-
-        return max(0, min(100, base_score))
-
-    def predict_time_to_danger(self, region_id):
-        """
-        Mock prediction for time to danger in minutes.
-        """
-        # Random prediction for demo purposes
-        return random.randint(5, 30)
-
-
 class ReliabilityModel:
     def calculate_reliability(self, ratings_df, shelter_id):
         """
@@ -1106,7 +1083,6 @@ def main():
     osm_client = OSMClient()
     routing_client = RoutingClient()
     processor = DataProcessor()
-    safety_model = SafetyModel()
     map_component = MapComponent()
     dashboard = Dashboard()
     # Pass nominatim client to sidebar
