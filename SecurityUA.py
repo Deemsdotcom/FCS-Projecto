@@ -561,7 +561,7 @@ def load_historical_alerts_for_ml() -> pd.DataFrame:
 
     for uid in EAST_UKRAINE_REGION_UIDS:
         try:
-            url = f"{ALERTS_API_BASE_URL}/v1/regions/{uid}/alerts/month_ago.json"
+            url = f"{ALERTS_API_BASE_URL}/regions/{uid}/alerts/month_ago.json"
             response = requests.get(url, headers=headers, timeout=10)
 
             if response.status_code != 200:
