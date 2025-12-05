@@ -975,7 +975,7 @@ class Sidebar:
         st.sidebar.header("Settings")
         st.sidebar.subheader("Your Location")
         
-        # REMOVED "Select on Map" from this list
+        # 1. Input Methods
         input_method = st.sidebar.radio(
             "Input Method",
             ["City Selection", "Address Search", "Manual Coordinates"] 
@@ -988,7 +988,6 @@ class Sidebar:
 
         lat, lon = st.session_state.user_lat, st.session_state.user_lon
 
-        # --- CITY SELECTION ---
         if input_method == "City Selection":
             sorted_cities = sorted(list(self.cities.keys()))
             default_index = sorted_cities.index("Kyiv") if "Kyiv" in sorted_cities else 0
@@ -999,7 +998,6 @@ class Sidebar:
             st.session_state.user_lat = lat
             st.session_state.user_lon = lon
 
-        # --- ADDRESS SEARCH ---
         elif input_method == "Address Search":
             address = st.sidebar.text_input("Enter Address (e.g. 'Maidan Nezalezhnosti, Kyiv')")
             if st.sidebar.button("🔍 Search Address"):
@@ -1018,26 +1016,22 @@ class Sidebar:
                         except Exception as e:
                             st.sidebar.error(f"Error: {e}")
 
-        # --- MANUAL COORDS ---
         elif input_method == "Manual Coordinates":
             lat = st.sidebar.number_input("Latitude", value=st.session_state.user_lat, format="%.4f")
             lon = st.sidebar.number_input("Longitude", value=st.session_state.user_lon, format="%.4f")
             st.session_state.user_lat = lat
             st.session_state.user_lon = lon
 
-        # (The "Select on Map" block is completely deleted)
-
         st.sidebar.markdown("---")
         
-        # --- FILTERS ---
+        # 2. Filters (REMOVED Shelter Type)
         st.sidebar.subheader("Shelter Filters")
-        shelter_types = DataProcessor.SHELTER_TYPES
-        selected_type = st.sidebar.selectbox("Filter by Type", ["All"] + shelter_types)
+        # I removed "Filter by Type" here
         max_dist = st.sidebar.slider("Max Distance (m)", 500, 5000, 1000)
 
         st.sidebar.markdown("---")
         
-        # --- ROUTING ---
+        # 3. Routing
         st.sidebar.subheader("Routing Options")
         mode_choice = st.sidebar.radio(
             "Choose Travel Mode:",
@@ -1049,7 +1043,6 @@ class Sidebar:
         return {
             "lat": lat,
             "lon": lon,
-            "selected_type": selected_type,
             "max_dist": max_dist,
             "input_method": input_method,
             "travel_mode": travel_mode 
@@ -1067,7 +1060,7 @@ def main():
     refresh_interval = st.sidebar.slider("Auto-refresh (sec)", 10, 300, 60)
     auto_refresh = st.sidebar.checkbox("Enable auto-refresh", value=True)
 
-    # --- INITIALIZE CLIENTS ---
+    # Initialize
     alerts_client = AlertsClient()
     routing_client = RoutingClient() 
     processor = DataProcessor()
@@ -1075,11 +1068,8 @@ def main():
     map_component = MapComponent()
     dashboard = Dashboard()
     
-    # *** THIS IS THE FIX ***
-    # We use the real 'Nominatim' from geopy, NOT the old client class
     geolocator = Nominatim(user_agent="security_ua_tracker")
     sidebar = Sidebar(geolocator)
-    # ***********************
 
     # Alerts
     try:
@@ -1111,10 +1101,11 @@ def main():
 
     # Process & Filter
     shelters_df = processor.process_shelters(shelters_raw, user_lat, user_lon)
-    if user_settings['selected_type'] != "All":
-        shelters_df = processor.filter_shelters(shelters_df, shelter_type=user_settings['selected_type'])
+    
+    # REMOVED: Type Filter Logic
+    # (The code that filtered by selected_type is gone)
 
-    # Smart Distance Filter
+    # Distance Filter
     nearby_df = shelters_df[shelters_df['distance_m'] <= user_settings['max_dist']]
     
     if nearby_df.empty and not shelters_df.empty:
@@ -1131,16 +1122,23 @@ def main():
     is_alert_active = False
 
     if not shelters_df.empty:
+        # Funnel (Top 5)
         candidates = shelters_df.head(5).copy()
+
+        # Matrix API
         with st.spinner("Calculating optimal route..."):
             nearest_shelter = routing_client.find_quickest_shelter(
                 user_lon, user_lat, candidates, profile=user_settings['travel_mode']
             )
+
+        # Route Line
         route_geojson = routing_client.get_route(
             (user_lon, user_lat),
             (nearest_shelter['lon'], nearest_shelter['lat']),
             profile=user_settings['travel_mode']
         )
+        
+        # Scoring
         protection = nearest_shelter.get('Protection Score', 5)
         safety_score = safety_model.predict_safety_score(
             nearest_shelter['distance_m'], is_alert_active, protection
@@ -1151,10 +1149,16 @@ def main():
         import math
         mins = math.ceil(nearest_shelter['duration_s'] / 60)
         mode = "Walking" if user_settings['travel_mode'] == 'foot-walking' else "Driving"
+        
         c1, c2, c3 = st.columns(3)
         time_display = f"{mins} min" if mins > 0 else "< 1 min"
         c1.metric(f"Time to Shelter ({mode})", time_display, nearest_shelter['name'])
-        c2.metric("Safety Score", f"{int(safety_score)}/100")
+        
+        delta_color = "normal"
+        if safety_score > 80: delta_color = "normal"
+        elif safety_score < 50: delta_color = "inverse"
+        c2.metric("Safety Score", f"{int(safety_score)}/100", delta_color=delta_color)
+        
         c3.metric("Est. Danger In", f"{time_to_danger} min")
     else:
         dashboard.render_metrics(nearest_shelter, safety_score, time_to_danger)
@@ -1162,7 +1166,8 @@ def main():
     # Render Map
     map_data = map_component.render(user_lat, user_lon, shelters_df, route_geojson)
 
-    if user_settings['input_method'] == "Select on Map" and map_data and map_data.get("last_clicked"):
+    # Map Click (Note: Logic exists but button removed from Sidebar UI)
+    if map_data and map_data.get("last_clicked"):
         lat = map_data["last_clicked"]["lat"]
         lng = map_data["last_clicked"]["lng"]
         if lat != st.session_state.user_lat or lng != st.session_state.user_lon:
