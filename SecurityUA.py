@@ -16,6 +16,8 @@ from streamlit_folium import st_folium
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import roc_auc_score
+from geopy.geocoders import Nominatim
+from geopy.extra.rate_limiter import RateLimiter
 
 ##### shelters
 @st.cache_data
