@@ -947,8 +947,27 @@ class Sidebar:
             "Odesa": {"lat": 46.4825, "lon": 30.7233},
             "Dnipro": {"lat": 48.4647, "lon": 35.0462},
             "Donetsk": {"lat": 48.0159, "lon": 37.8028},
+            "Zaporizhzhia": {"lat": 47.8388, "lon": 35.1396},
             "Lviv": {"lat": 49.8397, "lon": 24.0297},
-            "East Ukraine": {"lat": 49.0, "lon": 36.0}
+            "Kryvyi Rih": {"lat": 47.9105, "lon": 33.3918},
+            "Mykolaiv": {"lat": 46.9750, "lon": 31.9946},
+            "Mariupol": {"lat": 47.0971, "lon": 37.5434},
+            "Luhansk": {"lat": 48.5740, "lon": 39.3078},
+            "Vinnytsia": {"lat": 49.2331, "lon": 28.4682},
+            "Simferopol": {"lat": 44.9572, "lon": 34.1108},
+            "Chernihiv": {"lat": 51.4982, "lon": 31.2893},
+            "Kherson": {"lat": 46.6354, "lon": 32.6169},
+            "Poltava": {"lat": 49.5883, "lon": 34.5514},
+            "Khmelnytskyi": {"lat": 49.4230, "lon": 26.9871},
+            "Cherkasy": {"lat": 49.4444, "lon": 32.0598},
+            "Chernivtsi": {"lat": 48.2921, "lon": 25.9352},
+            "Zhytomyr": {"lat": 50.2547, "lon": 28.6587},
+            "Sumy": {"lat": 50.9077, "lon": 34.7981},
+            "Rivne": {"lat": 50.6199, "lon": 26.2516},
+            "Ivano-Frankivsk": {"lat": 48.9226, "lon": 24.7111},
+            "Ternopil": {"lat": 49.5535, "lon": 25.5948},
+            "Lutsk": {"lat": 50.7472, "lon": 25.3254},
+            "Uzhhorod": {"lat": 48.6208, "lon": 22.2879}
         }
 
     def render(self):
