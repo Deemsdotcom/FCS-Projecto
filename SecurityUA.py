@@ -1038,9 +1038,7 @@ class Sidebar:
 # Main Application
 # ==========================================
 
-
 def main():
-    # --- 1. CONFIGURATION ---
     st.set_page_config(page_title="SecurityUA", layout="wide")
     st.title("🛡️ SecurityUA – Ukraine Air Alerts Monitor")
 
@@ -1049,15 +1047,19 @@ def main():
     refresh_interval = st.sidebar.slider("Auto-refresh (sec)", 10, 300, 60)
     auto_refresh = st.sidebar.checkbox("Enable auto-refresh", value=True)
 
-    # --- 2. INITIALIZE ---
+    # --- INITIALIZE CLIENTS ---
     alerts_client = AlertsClient()
     routing_client = RoutingClient() 
     processor = DataProcessor()
     safety_model = SafetyModel()
     map_component = MapComponent()
     dashboard = Dashboard()
-    nominatim_client = NominatimClient()
-    sidebar = Sidebar(nominatim_client)
+    
+    # *** THIS IS THE FIX ***
+    # We use the real 'Nominatim' from geopy, NOT the old client class
+    geolocator = Nominatim(user_agent="security_ua_tracker")
+    sidebar = Sidebar(geolocator)
+    # ***********************
 
     # Alerts
     try:
@@ -1065,23 +1067,20 @@ def main():
     except:
         alerts_data = {}
 
-    # Alerts Table
-    is_alert_active = False
     if alerts_data:
         df_alerts = build_alerts_dataframe(alerts_data)
         if not df_alerts.empty:
-            is_alert_active = True
             with st.expander("🚨 Active Alerts", expanded=False):
                 st.dataframe(df_alerts, use_container_width=True)
 
-    # --- 3. MAP & DATA ---
+    # Map Settings
     user_settings = sidebar.render()
     user_lat = user_settings['lat']
     user_lon = user_settings['lon']
 
     st.markdown("### 🗺️ Live Shelter Map")
 
-    # LOAD DATA
+    # Load Data
     with st.spinner("Loading shelters..."):
         try:
             shelters_raw = load_data()
@@ -1090,83 +1089,59 @@ def main():
         except:
             shelters_raw = []
 
-    # PROCESS & FILTER
+    # Process & Filter
     shelters_df = processor.process_shelters(shelters_raw, user_lat, user_lon)
-
-    # 1. Type Filter
     if user_settings['selected_type'] != "All":
         shelters_df = processor.filter_shelters(shelters_df, shelter_type=user_settings['selected_type'])
 
-    # 2. Distance Filter (With "Safety Net")
-    # First, try to respect the user's slider
+    # Smart Distance Filter
     nearby_df = shelters_df[shelters_df['distance_m'] <= user_settings['max_dist']]
     
-    # If the slider filters EVERYTHING out (Map would be empty), ignore the slider!
     if nearby_df.empty and not shelters_df.empty:
-        st.warning(f"⚠️ No shelters found within {user_settings['max_dist']}m. Showing the closest 10 shelters instead.")
+        st.warning(f"⚠️ No shelters found within {user_settings['max_dist']}m. Showing the closest 10.")
         shelters_df = shelters_df.head(10)
     else:
         shelters_df = nearby_df
 
-    # --- 4. ROUTING LOGIC ---
+    # Routing Logic
     nearest_shelter = pd.Series()
     route_geojson = None
     safety_score = 0
-    time_to_danger = 0
+    time_to_danger = safety_model.predict_time_to_danger("Kyiv")
+    is_alert_active = False
 
     if not shelters_df.empty:
-        # We take the filtered list (e.g. 20 shelters)
-        # We only ask the Matrix API about the top 5 to save speed
         candidates = shelters_df.head(5).copy()
-
         with st.spinner("Calculating optimal route..."):
             nearest_shelter = routing_client.find_quickest_shelter(
                 user_lon, user_lat, candidates, profile=user_settings['travel_mode']
             )
-
-        # *** CRITICAL FIX: *** # I removed the line "shelters_df = pd.DataFrame([nearest_shelter])"
-        # Now shelters_df still contains ALL the shelters, so they will ALL show on the map.
-
-        # Get Route Line to the winner
         route_geojson = routing_client.get_route(
             (user_lon, user_lat),
             (nearest_shelter['lon'], nearest_shelter['lat']),
             profile=user_settings['travel_mode']
         )
-
-        # Scores
         protection = nearest_shelter.get('Protection Score', 5)
         safety_score = safety_model.predict_safety_score(
             nearest_shelter['distance_m'], is_alert_active, protection
         )
-        time_to_danger = safety_model.predict_time_to_danger("Kyiv")
 
-    # --- 5. RENDER ---
-    # Metrics
-    # ... inside main() ...
-
-    # 5. RENDER
+    # Render Metrics
     if 'duration_s' in nearest_shelter:
-        # FIX: Use math.ceil to round UP (e.g., 0.1 mins becomes 1 min)
         import math
         mins = math.ceil(nearest_shelter['duration_s'] / 60)
-        
         mode = "Walking" if user_settings['travel_mode'] == 'foot-walking' else "Driving"
-        
         c1, c2, c3 = st.columns(3)
-        # Use a nice "< 1 min" label if it's super close
         time_display = f"{mins} min" if mins > 0 else "< 1 min"
-        
-        c1.metric(f"Time to Best Shelter ({mode})", time_display, nearest_shelter['name'])
+        c1.metric(f"Time to Shelter ({mode})", time_display, nearest_shelter['name'])
         c2.metric("Safety Score", f"{int(safety_score)}/100")
         c3.metric("Est. Danger In", f"{time_to_danger} min")
     else:
         dashboard.render_metrics(nearest_shelter, safety_score, time_to_danger)
 
-    # Render Map (Now includes ALL shelters + The Route Line)
+    # Render Map
     map_data = map_component.render(user_lat, user_lon, shelters_df, route_geojson)
 
-    # Map Click Logic
     if user_settings['input_method'] == "Select on Map" and map_data and map_data.get("last_clicked"):
         lat = map_data["last_clicked"]["lat"]
         lng = map_data["last_clicked"]["lng"]
