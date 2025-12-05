@@ -339,60 +339,79 @@ class OSMClient:
 
 
 class RoutingClient:
-    def __init__(self, api_key=None):
-        self.api_key = api_key
-        if not self.api_key:
-            try:
-                self.api_key = st.secrets["ORS_API_KEY"]
-            except (FileNotFoundError, KeyError):
-                pass
-
+    def __init__(self, api_key=eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6Ijg2ZjI2ODQ1Y2JhMzQ1YTJhNmU3MDgwNDM0NjI4NGY5IiwiaCI6Im11cm11cjY0In0=):
+        # ---------------------------------------------------------
+        # PASTE YOUR KEY FROM SCREENSHOT 1 BELOW
+        # Replace "YOUR_LONG_KEY_HERE" with the real "ey..." string
+        # ---------------------------------------------------------
+        self.api_key = api_key if api_key else "YOUR_LONG_KEY_HERE"
+        
         if self.api_key:
             self.client = openrouteservice.Client(key=self.api_key)
         else:
             self.client = None
 
+    def find_quickest_shelter(self, user_lon, user_lat, candidates_df, profile='foot-walking'):
+        """
+        Takes the top 5 shelters, asks Matrix API for actual travel times, 
+        and returns the single best shelter row.
+        """
+        if not self.client or candidates_df.empty:
+            # Fallback: If API is down, just return the first one (closest by straight line)
+            return candidates_df.iloc[0] 
+
+        # Prepare coords list: [User, Shelter1, Shelter2, Shelter3, Shelter4, Shelter5]
+        # Note: ORS requires [Longitude, Latitude]
+        locations = [[user_lon, user_lat]]
+        for _, row in candidates_df.iterrows():
+            locations.append([row['lon'], row['lat']])
+
+        try:
+            # Ask Matrix: "How long from Index 0 (User) to everyone else?"
+            matrix = self.client.distance_matrix(
+                locations=locations,
+                profile=profile,
+                metrics=['duration'],
+                sources=[0]
+            )
+
+            # The API returns a list of times: [0, time_to_shelter1, time_to_shelter2...]
+            # We skip index 0 (User->User)
+            durations = matrix['durations'][0][1:]
+            
+            # Add these times to a copy of the dataframe
+            candidates_df = candidates_df.copy()
+            candidates_df['duration_s'] = durations
+            
+            # Sort by TIME (duration_s), so the fastest one is at the top
+            best_shelter = candidates_df.sort_values('duration_s').iloc[0]
+            return best_shelter
+
+        except Exception as e:
+            # Fallback: return the closest by math if the API fails
+            return candidates_df.iloc[0] 
+
     def get_route(self, start_coords, end_coords, profile='foot-walking'):
         """
-        Calculates a route between two points.
-        start_coords: (lon, lat) tuple
-        end_coords: (lon, lat) tuple
+        Calculates the specific turn-by-turn path to the chosen shelter.
         """
         if not self.client:
             return self._get_mock_route(start_coords, end_coords)
-
         try:
-            routes = self.client.directions(
+            return self.client.directions(
                 coordinates=[start_coords, end_coords],
                 profile=profile,
                 format='geojson'
             )
-            return routes
-        except Exception as e:
-            st.error(f"Error calculating route: {e}")
+        except Exception:
             return self._get_mock_route(start_coords, end_coords)
 
-    def _get_mock_route(self, start_coords, end_coords):
-        """
-        Returns a straight line mock route.
-        """
+    def _get_mock_route(self, start, end):
+        # Fallback straight line if internet fails
         return {
-            "type": "FeatureCollection",
-            "features": [{
-                "type": "Feature",
-                "geometry": {
-                    "type": "LineString",
-                    "coordinates": [start_coords, end_coords]
-                },
-                "properties": {
-                    "summary": {
-                        "distance": 0,
-                        "duration": 0
-                    }
-                }
-            }]
+            "type": "FeatureCollection", 
+            "features": [{"type": "Feature", "geometry": {"type": "LineString", "coordinates": [start, end]}}]
         }
-
 
 class NominatimClient:
     BASE_URL = "https://nominatim.openstreetmap.org"
