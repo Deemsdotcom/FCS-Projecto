@@ -1143,11 +1143,21 @@ def main():
 
     # --- 5. RENDER ---
     # Metrics
+    # ... inside main() ...
+
+    # 5. RENDER
     if 'duration_s' in nearest_shelter:
-        mins = int(nearest_shelter['duration_s'] / 60)
+        # FIX: Use math.ceil to round UP (e.g., 0.1 mins becomes 1 min)
+        import math
+        mins = math.ceil(nearest_shelter['duration_s'] / 60)
+        
         mode = "Walking" if user_settings['travel_mode'] == 'foot-walking' else "Driving"
+        
         c1, c2, c3 = st.columns(3)
-        c1.metric(f"Time to Best Shelter ({mode})", f"{mins} min", nearest_shelter['name'])
+        # Use a nice "< 1 min" label if it's super close
+        time_display = f"{mins} min" if mins > 0 else "< 1 min"
+        
+        c1.metric(f"Time to Best Shelter ({mode})", time_display, nearest_shelter['name'])
         c2.metric("Safety Score", f"{int(safety_score)}/100")
         c3.metric("Est. Danger In", f"{time_to_danger} min")
     else:
