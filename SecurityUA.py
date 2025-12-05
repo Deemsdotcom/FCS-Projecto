@@ -941,6 +941,7 @@ class Dashboard:
 class Sidebar:
     def __init__(self, geolocator):
         self.geolocator = geolocator
+        # Expanded list of major Ukrainian cities
         self.cities = {
             "Kyiv": {"lat": 50.4501, "lon": 30.5234},
             "Kharkiv": {"lat": 49.9935, "lon": 36.2304},
@@ -974,7 +975,6 @@ class Sidebar:
         st.sidebar.header("Settings")
         st.sidebar.subheader("Your Location")
         
-        # 1. Input Methods (All options preserved)
         input_method = st.sidebar.radio(
             "Input Method",
             ["City Selection", "Address Search", "Manual Coordinates", "Select on Map"]
@@ -982,21 +982,32 @@ class Sidebar:
 
         if 'user_lat' not in st.session_state:
             st.session_state.user_lat = 50.4501
+        if 'user_lon' not in st.session_state:
             st.session_state.user_lon = 30.5234
 
         lat, lon = st.session_state.user_lat, st.session_state.user_lon
 
-        # --- LOGIC ---
+        # --- CITY SELECTION ---
         if input_method == "City Selection":
-            city_name = st.sidebar.selectbox("Select City", list(self.cities.keys()),
-                                             index=list(self.cities.keys()).index("East Ukraine"))
+            # Sort cities alphabetically
+            sorted_cities = sorted(list(self.cities.keys()))
+            
+            # Default to Kyiv
+            default_index = sorted_cities.index("Kyiv") if "Kyiv" in sorted_cities else 0
+            
+            city_name = st.sidebar.selectbox(
+                "Select City", 
+                sorted_cities,
+                index=default_index
+            )
+            
             coords = self.cities[city_name]
             lat, lon = coords['lat'], coords['lon']
             st.session_state.user_lat = lat
             st.session_state.user_lon = lon
 
+        # --- ADDRESS SEARCH ---
         elif input_method == "Address Search":
-            # UPGRADED: Uses the professional geolocator
             address = st.sidebar.text_input("Enter Address (e.g. 'Maidan Nezalezhnosti, Kyiv')")
             if st.sidebar.button("🔍 Search Address"):
                 if address:
@@ -1014,12 +1025,14 @@ class Sidebar:
                         except Exception as e:
                             st.sidebar.error(f"Error: {e}")
 
+        # --- MANUAL COORDS ---
         elif input_method == "Manual Coordinates":
             lat = st.sidebar.number_input("Latitude", value=st.session_state.user_lat, format="%.4f")
             lon = st.sidebar.number_input("Longitude", value=st.session_state.user_lon, format="%.4f")
             st.session_state.user_lat = lat
             st.session_state.user_lon = lon
 
+        # --- MAP CLICK ---
         elif input_method == "Select on Map":
             st.sidebar.info("Click anywhere on the map to update your location.")
             lat = st.session_state.user_lat
@@ -1027,7 +1040,7 @@ class Sidebar:
 
         st.sidebar.markdown("---")
         
-        # 2. Filters (Preserved)
+        # --- FILTERS ---
         st.sidebar.subheader("Shelter Filters")
         shelter_types = DataProcessor.SHELTER_TYPES
         selected_type = st.sidebar.selectbox("Filter by Type", ["All"] + shelter_types)
@@ -1035,7 +1048,7 @@ class Sidebar:
 
         st.sidebar.markdown("---")
         
-        # 3. Routing Toggle (Preserved)
+        # --- ROUTING ---
         st.sidebar.subheader("Routing Options")
         mode_choice = st.sidebar.radio(
             "Choose Travel Mode:",
@@ -1052,7 +1065,6 @@ class Sidebar:
             "input_method": input_method,
             "travel_mode": travel_mode 
         }
-
 # ==========================================
 # Main Application
 # ==========================================
