@@ -941,7 +941,6 @@ class Dashboard:
 class Sidebar:
     def __init__(self, geolocator):
         self.geolocator = geolocator
-        # Expanded list of major Ukrainian cities
         self.cities = {
             "Kyiv": {"lat": 50.4501, "lon": 30.5234},
             "Kharkiv": {"lat": 49.9935, "lon": 36.2304},
@@ -975,7 +974,6 @@ class Sidebar:
         st.sidebar.header("Settings")
         st.sidebar.subheader("Your Location")
         
-        # 1. Input Methods
         input_method = st.sidebar.radio(
             "Input Method",
             ["City Selection", "Address Search", "Manual Coordinates"] 
@@ -1022,16 +1020,13 @@ class Sidebar:
             st.session_state.user_lat = lat
             st.session_state.user_lon = lon
 
+        # --- CLEANED UP SECTION ---
+        # I removed the "Shelter Filters" header and extra lines.
+        # I kept the slider because the map logic needs 'max_dist' to work.
         st.sidebar.markdown("---")
+        max_dist = st.sidebar.slider("Max Search Distance (m)", 500, 5000, 1000)
         
-        # 2. Filters (REMOVED Shelter Type)
-        st.sidebar.subheader("Shelter Filters")
-        # I removed "Filter by Type" here
-        max_dist = st.sidebar.slider("Max Distance (m)", 500, 5000, 1000)
-
-        st.sidebar.markdown("---")
-        
-        # 3. Routing
+        # --- ROUTING ---
         st.sidebar.subheader("Routing Options")
         mode_choice = st.sidebar.radio(
             "Choose Travel Mode:",
@@ -1043,6 +1038,7 @@ class Sidebar:
         return {
             "lat": lat,
             "lon": lon,
+            "selected_type": "All", # Hardcoded 'All' since button is gone
             "max_dist": max_dist,
             "input_method": input_method,
             "travel_mode": travel_mode 
