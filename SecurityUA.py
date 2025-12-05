@@ -1034,24 +1034,18 @@ class Sidebar:
 
 
 def main():
-    st.set_page_config(
-        page_title="SecurityUA – Ukraine Air Alerts",
-        layout="wide",
-    )
-
+    # --- 1. CONFIGURATION ---
+    st.set_page_config(page_title="SecurityUA", layout="wide")
     st.title("🛡️ SecurityUA – Ukraine Air Alerts Monitor")
 
-    # --- 1. SETUP & SIDEBAR ---
+    # Sidebar
     st.sidebar.header("Settings")
-    # Refresh logic
     refresh_interval = st.sidebar.slider("Auto-refresh (sec)", 10, 300, 60)
     auto_refresh = st.sidebar.checkbox("Enable auto-refresh", value=True)
 
-    # Initialize Clients
-    # Note: RoutingClient will use the key you already pasted in its class definition!
+    # --- 2. INITIALIZE ---
     alerts_client = AlertsClient()
     routing_client = RoutingClient() 
-    
     processor = DataProcessor()
     safety_model = SafetyModel()
     map_component = MapComponent()
@@ -1059,106 +1053,112 @@ def main():
     nominatim_client = NominatimClient()
     sidebar = Sidebar(nominatim_client)
 
-    # --- 2. GET ALERTS DATA ---
-    alerts_data = {}
+    # Alerts
     try:
         alerts_data = alerts_client.get_active_alerts()
-        st.success(f"✅ Connected to Alerts API · Last update: {datetime.now().strftime('%H:%M:%S')}")
-    except Exception as e:
-        st.error(f"❌ API Error: {e}")
+    except:
+        alerts_data = {}
 
-    # Render Alerts Table
+    # Alerts Table
+    is_alert_active = False
     if alerts_data:
         df_alerts = build_alerts_dataframe(alerts_data)
         if not df_alerts.empty:
-            with st.expander("View Active Alerts Table", expanded=False):
+            is_alert_active = True
+            with st.expander("🚨 Active Alerts", expanded=False):
                 st.dataframe(df_alerts, use_container_width=True)
 
-    # --- 3. SIDEBAR SETTINGS ---
+    # --- 3. MAP & DATA ---
     user_settings = sidebar.render()
     user_lat = user_settings['lat']
     user_lon = user_settings['lon']
 
-    # --- 4. MAP & ROUTING LOGIC ---
     st.markdown("### 🗺️ Live Shelter Map")
-    
-    # A. Load & Process Shelters
+
+    # LOAD DATA
     with st.spinner("Loading shelters..."):
-        shelters_raw = load_data() 
-        if isinstance(shelters_raw, pd.DataFrame):
-            shelters_raw = shelters_raw.to_dict('records')
-        
+        try:
+            shelters_raw = load_data()
+            if isinstance(shelters_raw, pd.DataFrame):
+                shelters_raw = shelters_raw.to_dict('records')
+        except:
+            shelters_raw = []
+
+    # PROCESS & FILTER
     shelters_df = processor.process_shelters(shelters_raw, user_lat, user_lon)
-    
-    # Filter by User Settings
+
+    # 1. Type Filter
     if user_settings['selected_type'] != "All":
         shelters_df = processor.filter_shelters(shelters_df, shelter_type=user_settings['selected_type'])
-    
-    # Apply Distance Filter
-    shelters_df = shelters_df[shelters_df['distance_m'] <= user_settings['max_dist']]
 
-    # B. THE NEW INTELLIGENT ROUTING
+    # 2. Distance Filter (With "Safety Net")
+    # First, try to respect the user's slider
+    nearby_df = shelters_df[shelters_df['distance_m'] <= user_settings['max_dist']]
+    
+    # If the slider filters EVERYTHING out (Map would be empty), ignore the slider!
+    if nearby_df.empty and not shelters_df.empty:
+        st.warning(f"⚠️ No shelters found within {user_settings['max_dist']}m. Showing the closest 10 shelters instead.")
+        shelters_df = shelters_df.head(10)
+    else:
+        shelters_df = nearby_df
+
+    # --- 4. ROUTING LOGIC ---
     nearest_shelter = pd.Series()
     route_geojson = None
     safety_score = 0
     time_to_danger = 0
-    is_alert_active = not df_alerts.empty if 'df_alerts' in locals() else False
 
     if not shelters_df.empty:
-        # Step 1: Filter to top 5 closest by math
+        # We take the filtered list (e.g. 20 shelters)
+        # We only ask the Matrix API about the top 5 to save speed
         candidates = shelters_df.head(5).copy()
-        
-        # Step 2: Use Matrix API to find the fastest
-        # It uses the key you hardcoded in the Class
-        with st.spinner("Calculating actual travel time..."):
+
+        with st.spinner("Calculating optimal route..."):
             nearest_shelter = routing_client.find_quickest_shelter(
                 user_lon, user_lat, candidates, profile=user_settings['travel_mode']
             )
 
-        # Step 3: Filter map to ONLY show the winner
-        shelters_df = pd.DataFrame([nearest_shelter])
+        # *** CRITICAL FIX: *** # I removed the line "shelters_df = pd.DataFrame([nearest_shelter])"
+        # Now shelters_df still contains ALL the shelters, so they will ALL show on the map.
 
-        # Step 4: Get the route line
+        # Get Route Line to the winner
         route_geojson = routing_client.get_route(
-            (user_lon, user_lat), 
-            (nearest_shelter['lon'], nearest_shelter['lat']), 
+            (user_lon, user_lat),
+            (nearest_shelter['lon'], nearest_shelter['lat']),
             profile=user_settings['travel_mode']
         )
 
-        # Step 5: Scoring
+        # Scores
         protection = nearest_shelter.get('Protection Score', 5)
         safety_score = safety_model.predict_safety_score(
             nearest_shelter['distance_m'], is_alert_active, protection
         )
         time_to_danger = safety_model.predict_time_to_danger("Kyiv")
 
-    # --- 5. RENDER METRICS & MAP ---
-    
-    # Display Time Metric if available
+    # --- 5. RENDER ---
+    # Metrics
     if 'duration_s' in nearest_shelter:
         mins = int(nearest_shelter['duration_s'] / 60)
         mode = "Walking" if user_settings['travel_mode'] == 'foot-walking' else "Driving"
-        
         c1, c2, c3 = st.columns(3)
-        c1.metric(f"⏳ Time to Shelter ({mode})", f"{mins} min", nearest_shelter['name'])
-        c2.metric("🛡️ Safety Score", f"{int(safety_score)}/100")
-        c3.metric("⚠️ Est. Time to Danger", f"{time_to_danger} min")
+        c1.metric(f"Time to Best Shelter ({mode})", f"{mins} min", nearest_shelter['name'])
+        c2.metric("Safety Score", f"{int(safety_score)}/100")
+        c3.metric("Est. Danger In", f"{time_to_danger} min")
     else:
-        # Fallback if no route found
         dashboard.render_metrics(nearest_shelter, safety_score, time_to_danger)
 
-    # Render Map
+    # Render Map (Now includes ALL shelters + The Route Line)
     map_data = map_component.render(user_lat, user_lon, shelters_df, route_geojson)
 
-    # Click Listener (Update location on click)
+    # Map Click Logic
     if user_settings['input_method'] == "Select on Map" and map_data and map_data.get("last_clicked"):
-        lat, lng = map_data["last_clicked"]["lat"], map_data["last_clicked"]["lng"]
+        lat = map_data["last_clicked"]["lat"]
+        lng = map_data["last_clicked"]["lng"]
         if lat != st.session_state.user_lat or lng != st.session_state.user_lon:
             st.session_state.user_lat = lat
             st.session_state.user_lon = lng
             st.rerun()
 
-    # --- 6. AUTO REFRESH ---
     if auto_refresh:
         time.sleep(refresh_interval)
         st.rerun()
