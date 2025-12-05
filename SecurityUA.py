@@ -196,9 +196,7 @@ def build_alerts_dataframe(alerts_json: dict) -> pd.DataFrame:
 
     return df
 
-
 def main():
-    # Basic page configuration
     st.set_page_config(
         page_title="SecurityUA – Ukraine Air Alerts",
         layout="wide",
@@ -206,88 +204,130 @@ def main():
 
     st.title("🛡️ SecurityUA – Ukraine Air Alerts Monitor")
 
-    # Sidebar controls
+    # --- 1. SETUP & SIDEBAR ---
     st.sidebar.header("Settings")
+    # Refresh logic
+    refresh_interval = st.sidebar.slider("Auto-refresh (sec)", 10, 300, 60)
+    auto_refresh = st.sidebar.checkbox("Enable auto-refresh", value=True)
 
-    # Auto-refresh interval (in seconds)
-    refresh_interval = st.sidebar.slider(
-        "Auto-refresh interval (seconds)",
-        min_value=10,
-        max_value=300,
-        value=60,
-        step=10,
-        help="How often the page should automatically reload data.",
-    )
+    # Initialize Clients
+    # Note: RoutingClient will use the key you already pasted in its class definition!
+    alerts_client = AlertsClient()
+    routing_client = RoutingClient() 
+    
+    processor = DataProcessor()
+    safety_model = SafetyModel()
+    map_component = MapComponent()
+    dashboard = Dashboard()
+    nominatim_client = NominatimClient()
+    sidebar = Sidebar(nominatim_client)
 
-    auto_refresh = st.sidebar.checkbox(
-        "Enable auto-refresh",
-        value=True,
-        help="If enabled, the app will reload automatically every X seconds.",
-    )
-
-    # Initialize client
-    client = AlertsClient()
-
-    # Fetch data and show live status indicator
+    # --- 2. GET ALERTS DATA ---
+    alerts_data = {}
     try:
-        alerts_json = client.get_active_alerts()
-        last_updated = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        alerts_data = alerts_client.get_active_alerts()
+        st.success(f"✅ Connected to Alerts API · Last update: {datetime.now().strftime('%H:%M:%S')}")
+    except Exception as e:
+        st.error(f"❌ API Error: {e}")
 
-        # Live status indicator (green)
-        st.success(f"✅ Connected to Alerts API · Last update: {last_updated}")
+    # Render Alerts Table
+    if alerts_data:
+        df_alerts = build_alerts_dataframe(alerts_data)
+        if not df_alerts.empty:
+            with st.expander("View Active Alerts Table", expanded=False):
+                st.dataframe(df_alerts, use_container_width=True)
 
-    except requests.RequestException as e:
-        # Live status indicator (red)
-        st.error(f"❌ Could not fetch alerts from API: {e}")
-        alerts_json = None
+    # --- 3. SIDEBAR SETTINGS ---
+    user_settings = sidebar.render()
+    user_lat = user_settings['lat']
+    user_lon = user_settings['lon']
 
-    # Only proceed if we have data
-    if alerts_json:
-        df = build_alerts_dataframe(alerts_json)
+    # --- 4. MAP & ROUTING LOGIC ---
+    st.markdown("### 🗺️ Live Shelter Map")
+    
+    # A. Load & Process Shelters
+    with st.spinner("Loading shelters..."):
+        shelters_raw = load_data() 
+        if isinstance(shelters_raw, pd.DataFrame):
+            shelters_raw = shelters_raw.to_dict('records')
+        
+    shelters_df = processor.process_shelters(shelters_raw, user_lat, user_lon)
+    
+    # Filter by User Settings
+    if user_settings['selected_type'] != "All":
+        shelters_df = processor.filter_shelters(shelters_df, shelter_type=user_settings['selected_type'])
+    
+    # Apply Distance Filter
+    shelters_df = shelters_df[shelters_df['distance_m'] <= user_settings['max_dist']]
 
-        if df.empty:
-            st.warning("No active alerts were returned by the API.")
-        else:
-            # Sidebar filter: region / location_title
-            if "location_title" in df.columns:
-                regions = sorted(df["location_title"].dropna().unique().tolist())
-                selected_region = st.sidebar.selectbox(
-                    "Filter by region",
-                    options=["All regions"] + regions,
-                    index=0,
-                )
+    # B. THE NEW INTELLIGENT ROUTING
+    nearest_shelter = pd.Series()
+    route_geojson = None
+    safety_score = 0
+    time_to_danger = 0
+    is_alert_active = not df_alerts.empty if 'df_alerts' in locals() else False
 
-                if selected_region != "All regions":
-                    df = df[df["location_title"] == selected_region]
-
-            # Show summary
-            st.subheader("Active alerts")
-
-            st.write(f"Number of active alerts: **{len(df)}**")
-
-            # Display the table in a clean way
-            st.dataframe(
-                df,
-                use_container_width=True,
+    if not shelters_df.empty:
+        # Step 1: Filter to top 5 closest by math
+        candidates = shelters_df.head(5).copy()
+        
+        # Step 2: Use Matrix API to find the fastest
+        # It uses the key you hardcoded in the Class
+        with st.spinner("Calculating actual travel time..."):
+            nearest_shelter = routing_client.find_quickest_shelter(
+                user_lon, user_lat, candidates, profile=user_settings['travel_mode']
             )
 
-            # Optionally show raw JSON for debugging / curiosity
-            with st.expander("Show raw API response (JSON)"):
-                st.json(alerts_json)
+        # Step 3: Filter map to ONLY show the winner
+        shelters_df = pd.DataFrame([nearest_shelter])
 
-    # Auto-refresh logic (simple server-side loop)
-    # If auto-refresh is enabled, wait for the chosen interval
-    # and then rerun the app.
-    if auto_refresh:
-        # Small caption at the bottom to indicate refresh timing
-        st.caption(
-            f"🔄 Auto-refresh is ON · The page will reload every {refresh_interval} seconds."
+        # Step 4: Get the route line
+        route_geojson = routing_client.get_route(
+            (user_lon, user_lat), 
+            (nearest_shelter['lon'], nearest_shelter['lat']), 
+            profile=user_settings['travel_mode']
         )
-        # Sleep, then rerun
-        time.sleep(refresh_interval)
-        st.experimental_rerun()
+
+        # Step 5: Scoring
+        protection = nearest_shelter.get('Protection Score', 5)
+        safety_score = safety_model.predict_safety_score(
+            nearest_shelter['distance_m'], is_alert_active, protection
+        )
+        time_to_danger = safety_model.predict_time_to_danger("Kyiv")
+
+    # --- 5. RENDER METRICS & MAP ---
+    
+    # Display Time Metric if available
+    if 'duration_s' in nearest_shelter:
+        mins = int(nearest_shelter['duration_s'] / 60)
+        mode = "Walking" if user_settings['travel_mode'] == 'foot-walking' else "Driving"
+        
+        c1, c2, c3 = st.columns(3)
+        c1.metric(f"⏳ Time to Shelter ({mode})", f"{mins} min", nearest_shelter['name'])
+        c2.metric("🛡️ Safety Score", f"{int(safety_score)}/100")
+        c3.metric("⚠️ Est. Time to Danger", f"{time_to_danger} min")
     else:
-        st.caption("⏸️ Auto-refresh is OFF.")
+        # Fallback if no route found
+        dashboard.render_metrics(nearest_shelter, safety_score, time_to_danger)
+
+    # Render Map
+    map_data = map_component.render(user_lat, user_lon, shelters_df, route_geojson)
+
+    # Click Listener (Update location on click)
+    if user_settings['input_method'] == "Select on Map" and map_data and map_data.get("last_clicked"):
+        lat, lng = map_data["last_clicked"]["lat"], map_data["last_clicked"]["lng"]
+        if lat != st.session_state.user_lat or lng != st.session_state.user_lon:
+            st.session_state.user_lat = lat
+            st.session_state.user_lon = lng
+            st.rerun()
+
+    # --- 6. AUTO REFRESH ---
+    if auto_refresh:
+        time.sleep(refresh_interval)
+        st.rerun()
+
+if __name__ == "__main__":
+    main()
 
 
 class OSMClient:
@@ -339,7 +379,7 @@ class OSMClient:
 
 
 class RoutingClient:
-    def __init__(self, api_key=eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6Ijg2ZjI2ODQ1Y2JhMzQ1YTJhNmU3MDgwNDM0NjI4NGY5IiwiaCI6Im11cm11cjY0In0=):
+    def __init__(self, api_key="eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6Ijg2ZjI2ODQ1Y2JhMzQ1YTJhNmU3MDgwNDM0NjI4NGY5IiwiaCI6Im11cm11cjY0In0="):
         # ---------------------------------------------------------
         # PASTE YOUR KEY FROM SCREENSHOT 1 BELOW
         # Replace "YOUR_LONG_KEY_HERE" with the real "ey..." string
