@@ -939,8 +939,8 @@ class Dashboard:
 
 
 class Sidebar:
-    def __init__(self, nominatim_client):
-        self.nominatim_client = nominatim_client
+    def __init__(self, geolocator):
+        self.geolocator = geolocator
         self.cities = {
             "Kyiv": {"lat": 50.4501, "lon": 30.5234},
             "Kharkiv": {"lat": 49.9935, "lon": 36.2304},
@@ -953,21 +953,21 @@ class Sidebar:
 
     def render(self):
         st.sidebar.header("Settings")
-
         st.sidebar.subheader("Your Location")
+        
+        # 1. Input Methods (All options preserved)
         input_method = st.sidebar.radio(
             "Input Method",
             ["City Selection", "Address Search", "Manual Coordinates", "Select on Map"]
         )
 
-        # Initialize session state for location if not exists
         if 'user_lat' not in st.session_state:
             st.session_state.user_lat = 50.4501
-        if 'user_lon' not in st.session_state:
             st.session_state.user_lon = 30.5234
 
         lat, lon = st.session_state.user_lat, st.session_state.user_lon
 
+        # --- LOGIC ---
         if input_method == "City Selection":
             city_name = st.sidebar.selectbox("Select City", list(self.cities.keys()),
                                              index=list(self.cities.keys()).index("East Ukraine"))
@@ -977,18 +977,23 @@ class Sidebar:
             st.session_state.user_lon = lon
 
         elif input_method == "Address Search":
-            address = st.sidebar.text_input("Enter Address (Street, City)")
-            if st.sidebar.button("Search"):
+            # UPGRADED: Uses the professional geolocator
+            address = st.sidebar.text_input("Enter Address (e.g. 'Maidan Nezalezhnosti, Kyiv')")
+            if st.sidebar.button("🔍 Search Address"):
                 if address:
-                    with st.spinner("Geocoding..."):
-                        result = self.nominatim_client.geocode(address)
-                        if result:
-                            lat, lon = result['lat'], result['lon']
-                            st.session_state.user_lat = lat
-                            st.session_state.user_lon = lon
-                            st.sidebar.success(f"Found: {result['display_name']}")
-                        else:
-                            st.sidebar.error("Address not found.")
+                    with st.spinner("Searching map..."):
+                        try:
+                            location = self.geolocator.geocode(address)
+                            if location:
+                                lat = location.latitude
+                                lon = location.longitude
+                                st.session_state.user_lat = lat
+                                st.session_state.user_lon = lon
+                                st.sidebar.success(f"📍 Found: {location.address}")
+                            else:
+                                st.sidebar.error("❌ Address not found. Try adding the city name.")
+                        except Exception as e:
+                            st.sidebar.error(f"Error: {e}")
 
         elif input_method == "Manual Coordinates":
             lat = st.sidebar.number_input("Latitude", value=st.session_state.user_lat, format="%.4f")
@@ -997,13 +1002,13 @@ class Sidebar:
             st.session_state.user_lon = lon
 
         elif input_method == "Select on Map":
-            st.sidebar.info("Click anywhere on the map to set your location.")
+            st.sidebar.info("Click anywhere on the map to update your location.")
             lat = st.session_state.user_lat
             lon = st.session_state.user_lon
 
         st.sidebar.markdown("---")
-
-        # Filters
+        
+        # 2. Filters (Preserved)
         st.sidebar.subheader("Shelter Filters")
         shelter_types = DataProcessor.SHELTER_TYPES
         selected_type = st.sidebar.selectbox("Filter by Type", ["All"] + shelter_types)
@@ -1011,21 +1016,14 @@ class Sidebar:
 
         st.sidebar.markdown("---")
         
-        # --- NEW ROUTING TOGGLE ---
+        # 3. Routing Toggle (Preserved)
         st.sidebar.subheader("Routing Options")
-        
         mode_choice = st.sidebar.radio(
             "Choose Travel Mode:",
             ["Walking 🚶", "Driving 🚗"],
-            index=0, # Default to walking
-            help="Switching modes recalculates the fastest route."
+            index=0
         )
-
-        # Convert selection to API-friendly string
-        if "Walking" in mode_choice:
-            travel_mode = "foot-walking"
-        else:
-            travel_mode = "driving-car"
+        travel_mode = "foot-walking" if "Walking" in mode_choice else "driving-car"
 
         return {
             "lat": lat,
