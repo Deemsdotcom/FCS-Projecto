@@ -975,9 +975,10 @@ class Sidebar:
         st.sidebar.header("Settings")
         st.sidebar.subheader("Your Location")
         
+        # REMOVED "Select on Map" from this list
         input_method = st.sidebar.radio(
             "Input Method",
-            ["City Selection", "Address Search", "Manual Coordinates", "Select on Map"]
+            ["City Selection", "Address Search", "Manual Coordinates"] 
         )
 
         if 'user_lat' not in st.session_state:
@@ -989,18 +990,10 @@ class Sidebar:
 
         # --- CITY SELECTION ---
         if input_method == "City Selection":
-            # Sort cities alphabetically
             sorted_cities = sorted(list(self.cities.keys()))
-            
-            # Default to Kyiv
             default_index = sorted_cities.index("Kyiv") if "Kyiv" in sorted_cities else 0
             
-            city_name = st.sidebar.selectbox(
-                "Select City", 
-                sorted_cities,
-                index=default_index
-            )
-            
+            city_name = st.sidebar.selectbox("Select City", sorted_cities, index=default_index)
             coords = self.cities[city_name]
             lat, lon = coords['lat'], coords['lon']
             st.session_state.user_lat = lat
@@ -1032,11 +1025,7 @@ class Sidebar:
             st.session_state.user_lat = lat
             st.session_state.user_lon = lon
 
-        # --- MAP CLICK ---
-        elif input_method == "Select on Map":
-            st.sidebar.info("Click anywhere on the map to update your location.")
-            lat = st.session_state.user_lat
-            lon = st.session_state.user_lon
+        # (The "Select on Map" block is completely deleted)
 
         st.sidebar.markdown("---")
         
