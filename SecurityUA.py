@@ -971,7 +971,6 @@ class Sidebar:
                                              index=list(self.cities.keys()).index("East Ukraine"))
             coords = self.cities[city_name]
             lat, lon = coords['lat'], coords['lon']
-            # Update session state immediately
             st.session_state.user_lat = lat
             st.session_state.user_lon = lon
 
@@ -997,7 +996,6 @@ class Sidebar:
 
         elif input_method == "Select on Map":
             st.sidebar.info("Click anywhere on the map to set your location.")
-            # Coordinates are updated via map click event in main()
             lat = st.session_state.user_lat
             lon = st.session_state.user_lon
 
@@ -1005,18 +1003,27 @@ class Sidebar:
 
         # Filters
         st.sidebar.subheader("Shelter Filters")
-
-        # Use the canonical types for filtering
         shelter_types = DataProcessor.SHELTER_TYPES
         selected_type = st.sidebar.selectbox("Filter by Type", ["All"] + shelter_types)
-
         max_dist = st.sidebar.slider("Max Distance (m)", 500, 5000, 1000)
 
         st.sidebar.markdown("---")
-        st.sidebar.markdown("---")
+        
+        # --- NEW ROUTING TOGGLE ---
         st.sidebar.subheader("Routing Options")
-        st.sidebar.info("Travel Mode: Walking 🚶 (Fixed)")
-        travel_mode = "foot-walking"
+        
+        mode_choice = st.sidebar.radio(
+            "Choose Travel Mode:",
+            ["Walking 🚶", "Driving 🚗"],
+            index=0, # Default to walking
+            help="Switching modes recalculates the fastest route."
+        )
+
+        # Convert selection to API-friendly string
+        if "Walking" in mode_choice:
+            travel_mode = "foot-walking"
+        else:
+            travel_mode = "driving-car"
 
         return {
             "lat": lat,
@@ -1024,9 +1031,8 @@ class Sidebar:
             "selected_type": selected_type,
             "max_dist": max_dist,
             "input_method": input_method,
-            "travel_mode": travel_mode
+            "travel_mode": travel_mode 
         }
-
 
 # ==========================================
 # Main Application
