@@ -16,7 +16,6 @@ from streamlit_folium import st_folium
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import roc_auc_score
-from sklearn.preprocessing import LabelEncoder
 from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
 
@@ -567,25 +566,14 @@ def load_historical_alerts_for_ml() -> pd.DataFrame:
 
     # ✅ Use static list instead of broken API endpoint
     region_uids = ALL_UKRAINE_REGION_UIDS
-    
-    # Progress UI
-    progress_bar = st.progress(0)
-    status_text = st.empty()
-    total_regions = len(region_uids)
 
-    for i, uid in enumerate(region_uids):
-        # Update progress
-        progress = (i + 1) / total_regions
-        progress_bar.progress(progress)
-        status_text.text(f"Fetching data for region ID {uid} ({i+1}/{total_regions})...")
-
+    for uid in region_uids:
         try:
             url = f"{ALERTS_API_BASE_URL}/regions/{uid}/alerts/month_ago.json"
             response = requests.get(url, headers=headers, timeout=10)
 
             if response.status_code != 200:
-                print(f"Warning: Region {uid} returned {response.status_code}")
-                # Don't fail completely, just skip
+                st.warning(f"Failed to fetch data for region {uid}: {response.status_code}")
                 continue
 
             data = response.json()
@@ -598,17 +586,12 @@ def load_historical_alerts_for_ml() -> pd.DataFrame:
                     "region": alert.get("location_title") or alert.get("location_oblast"),
                     "alert_active": 1,
                 })
-        
-        except Exception as e:
-            print(f"Error fetching data for region {uid}: {e}")
-            # Optional: sleep slightly to avoid rate limits if that's the cause
-            time.sleep(0.5)
 
-    progress_bar.empty()
-    status_text.empty()
+        except Exception as e:
+            st.error(f"Error fetching data for region {uid}: {e}")
 
     if not all_alerts:
-        return pd.DataFrame(), None
+        return pd.DataFrame()
 
     df = pd.DataFrame(all_alerts)
 
@@ -644,11 +627,7 @@ def load_historical_alerts_for_ml() -> pd.DataFrame:
         axis=1
     )
 
-    # Encode Regions
-    le = LabelEncoder()
-    grid_df["region_encoded"] = le.fit_transform(grid_df["region"])
-
-    return grid_df, le
+    return grid_df
 
 
     df = pd.DataFrame(all_alerts)
@@ -742,7 +721,7 @@ def train_attack_risk_model(alerts_df: pd.DataFrame):
     if alerts_df.empty or "alert_occurrence" not in alerts_df.columns:
         raise ValueError("Input DataFrame is empty or missing required columns.")
 
-    feature_cols = ["month", "day", "hour", "region_encoded"]
+    feature_cols = ["month", "day", "hour"]
     X = alerts_df[feature_cols].values
     y = alerts_df["alert_occurrence"].values
 
@@ -773,7 +752,7 @@ def train_attack_risk_model(alerts_df: pd.DataFrame):
     return model, roc_auc
 
 
-def predict_attack_probability(model, month: int, day: int, hour: int, region_encoded: int) -> float:
+def predict_attack_probability(model, month: int, day: int, hour: int) -> float:
     """
     Uses the trained model to predict the probability of an attack.
     """
@@ -787,21 +766,15 @@ def predict_attack_probability(model, month: int, day: int, hour: int, region_en
     if model is None:
         return 0.0
 
-    X_new = np.array([[month, day, hour, region_encoded]], dtype=float)
+    X_new = np.array([[month, day, hour]], dtype=float)
     return model.predict_proba(X_new)[0, 1]
 
-def render_risk_prediction_tab(sidebar_city_name=None):
+def render_risk_prediction_tab():
     st.header("Air Alert Attack Risk Model")
 
     # 1) Load data
     with st.spinner("Loading historical alerts..."):
-        # Unpack tuple
-        result = load_historical_alerts_for_ml()
-        if isinstance(result, tuple):
-             alerts_df, le = result
-        else:
-             alerts_df = result
-             le = None
+        alerts_df = load_historical_alerts_for_ml()
 
     if alerts_df.empty:
         st.error("No alert data loaded. Cannot train model.")
@@ -820,37 +793,16 @@ def render_risk_prediction_tab(sidebar_city_name=None):
             # 3) User inputs for prediction
             st.subheader("Predict attack probability")
 
-            col1, col2 = st.columns(2)
-            col3, col4 = st.columns(2)
-
+            col1, col2, col3 = st.columns(3)
             with col1:
                 month = st.number_input("Month (1–12)", min_value=1, max_value=12, value=1)
             with col2:
                 day = st.number_input("Day (1-31)", min_value=1, max_value=31, value=1)
             with col3:
                 hour = st.number_input("Hour (0–23)", min_value=0, max_value=23, value=12)
-            
-            # Region Selection with Auto-Select logic
-            with col4:
-                available_regions = sorted(list(le.classes_)) if le else []
-                default_ix = 0
-                
-                # Try to fuzzy match sidebar city to region
-                if sidebar_city_name:
-                     for i, r in enumerate(available_regions):
-                        # Simple heuristic: if city name is in region name (e.g. 'Kyiv' in 'Kyiv Oblast')
-                        if sidebar_city_name in r:
-                            default_ix = i
-                            break
-                
-                selected_region = st.selectbox("Region", available_regions, index=default_ix)
-                
-                region_encoded = 0
-                if le and selected_region:
-                    region_encoded = le.transform([selected_region])[0]
 
             if st.button("Predict"):
-                prob = predict_attack_probability(model, month, day, hour, region_encoded)
+                prob = predict_attack_probability(model, month, day, hour)
                 st.metric("Predicted attack probability", f"{prob:.1%}")
 
 class SafetyModel:
@@ -1091,7 +1043,6 @@ class Sidebar:
         }
 
     def render(self):
-        current_city = None
         st.sidebar.header("Settings")
         st.sidebar.subheader("Your Location")
         
@@ -1116,8 +1067,6 @@ class Sidebar:
             lat, lon = coords['lat'], coords['lon']
             st.session_state.user_lat = lat
             st.session_state.user_lon = lon
-            
-            current_city = city_name
 
         elif input_method == "Address Search":
             address = st.sidebar.text_input("Enter Address (e.g. 'Maidan Nezalezhnosti, Kyiv')")
@@ -1164,8 +1113,7 @@ class Sidebar:
             "selected_type": "All", # Hardcoded 'All' since button is gone
             "max_dist": max_dist,
             "input_method": input_method,
-            "travel_mode": travel_mode,
-            "city_name": current_city
+            "travel_mode": travel_mode 
         }
 # ==========================================
 # Main Application
@@ -1305,7 +1253,7 @@ def main():
                 st.rerun()
 
     with tab2:
-        render_risk_prediction_tab(sidebar_city_name=user_settings.get('city_name'))
+        render_risk_prediction_tab()
 
     if auto_refresh:
         time.sleep(refresh_interval)
