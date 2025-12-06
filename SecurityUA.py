@@ -567,14 +567,25 @@ def load_historical_alerts_for_ml() -> pd.DataFrame:
 
     # ✅ Use static list instead of broken API endpoint
     region_uids = ALL_UKRAINE_REGION_UIDS
+    
+    # Progress UI
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    total_regions = len(region_uids)
 
-    for uid in region_uids:
+    for i, uid in enumerate(region_uids):
+        # Update progress
+        progress = (i + 1) / total_regions
+        progress_bar.progress(progress)
+        status_text.text(f"Fetching data for region ID {uid} ({i+1}/{total_regions})...")
+
         try:
             url = f"{ALERTS_API_BASE_URL}/regions/{uid}/alerts/month_ago.json"
             response = requests.get(url, headers=headers, timeout=10)
 
             if response.status_code != 200:
-                st.warning(f"Failed to fetch data for region {uid}: {response.status_code}")
+                print(f"Warning: Region {uid} returned {response.status_code}")
+                # Don't fail completely, just skip
                 continue
 
             data = response.json()
@@ -587,12 +598,17 @@ def load_historical_alerts_for_ml() -> pd.DataFrame:
                     "region": alert.get("location_title") or alert.get("location_oblast"),
                     "alert_active": 1,
                 })
-
+        
         except Exception as e:
-            st.error(f"Error fetching data for region {uid}: {e}")
+            print(f"Error fetching data for region {uid}: {e}")
+            # Optional: sleep slightly to avoid rate limits if that's the cause
+            time.sleep(0.5)
+
+    progress_bar.empty()
+    status_text.empty()
 
     if not all_alerts:
-        return pd.DataFrame()
+        return pd.DataFrame(), None
 
     df = pd.DataFrame(all_alerts)
 
