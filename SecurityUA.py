@@ -554,12 +554,18 @@ EAST_UKRAINE_REGION_UIDS = [16, 22, 28]  # Luhansk, Kharkiv, Donetsk
 @st.cache_data(ttl=3600)
 def load_historical_alerts_for_ml() -> pd.DataFrame:
     """
-    Downloads and prepares historical alert data from alerts.in.ua for ML.
+    Downloads and prepares historical alert data from alerts.in.ua for ML,
+    using ALL regions in Ukraine.
     """
     headers = {"Authorization": f"Bearer {ALERTS_API_TOKEN}"}
     all_alerts = []
 
-    for uid in EAST_UKRAINE_REGION_UIDS:
+    region_uids = get_all_ukraine_region_uids()
+    if not region_uids:
+        st.error("Could not load region UIDs for Ukraine.")
+        return pd.DataFrame()
+
+    for uid in region_uids:
         try:
             url = f"{ALERTS_API_BASE_URL}/regions/{uid}/alerts/month_ago.json"
             response = requests.get(url, headers=headers, timeout=10)
@@ -572,13 +578,11 @@ def load_historical_alerts_for_ml() -> pd.DataFrame:
             alerts = data.get("alerts", [])
 
             for alert in alerts:
-                # Parse timestamp
                 started_at = pd.to_datetime(alert["started_at"])
-
                 all_alerts.append({
                     "timestamp": started_at,
                     "region": alert.get("location_title") or alert.get("location_oblast"),
-                    "alert_active": 1
+                    "alert_active": 1,
                 })
 
         except Exception as e:
@@ -587,6 +591,8 @@ def load_historical_alerts_for_ml() -> pd.DataFrame:
 
     if not all_alerts:
         return pd.DataFrame()
+
+
 
     df = pd.DataFrame(all_alerts)
 
