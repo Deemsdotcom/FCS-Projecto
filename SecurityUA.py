@@ -548,32 +548,12 @@ class Storage:
 # Constants for ML
 ALERTS_API_BASE_URL = "https://api.alerts.in.ua/v1"
 ALERTS_API_TOKEN = "3b9da58a53b958cab81355b22e3feb9c10593dc4ab2203"
-
-
-
-@st.cache_data(ttl=3600)
-def get_all_ukraine_region_uids() -> list[int]:
-    """
-    Fetches all region UIDs for Ukraine from alerts.in.ua.
-    """
-    headers = {"Authorization": f"Bearer {ALERTS_API_TOKEN}"}
-    url = f"{ALERTS_API_BASE_URL}/regions.json"
-
-    try:
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
-
-        data = response.json()
-
-        # Expected structure:
-        # { "regions": [ { "uid": 1, ... }, ... ] }
-        return [region["uid"] for region in data.get("regions", [])]
-
-    except Exception as e:
-        st.error(f"Failed to fetch Ukraine region list: {e}")
-        return []
-
-
+# All Ukraine region UIDs (official alerts.in.ua list)
+ALL_UKRAINE_REGION_UIDS = [
+    3, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15,
+    16, 17, 18, 19, 20, 21, 22, 23, 24,
+    25, 26, 27, 28, 29, 30, 31
+]
 
 @st.cache_data(ttl=3600)
 def load_historical_alerts_for_ml() -> pd.DataFrame:
@@ -584,10 +564,8 @@ def load_historical_alerts_for_ml() -> pd.DataFrame:
     headers = {"Authorization": f"Bearer {ALERTS_API_TOKEN}"}
     all_alerts = []
 
-    region_uids = get_all_ukraine_region_uids()
-    if not region_uids:
-        st.error("Could not load region UIDs for Ukraine.")
-        return pd.DataFrame()
+    # ✅ Use static list instead of broken API endpoint
+    region_uids = ALL_UKRAINE_REGION_UIDS
 
     for uid in region_uids:
         try:
@@ -608,6 +586,49 @@ def load_historical_alerts_for_ml() -> pd.DataFrame:
                     "region": alert.get("location_title") or alert.get("location_oblast"),
                     "alert_active": 1,
                 })
+
+        except Exception as e:
+            st.error(f"Error fetching data for region {uid}: {e}")
+
+    if not all_alerts:
+        return pd.DataFrame()
+
+    df = pd.DataFrame(all_alerts)
+
+    # Feature engineering
+    df["month"] = df["timestamp"].dt.month
+    df["day_of_week"] = df["timestamp"].dt.dayofweek
+    df["hour"] = df["timestamp"].dt.hour
+
+    # Build full hourly grid (last 30 days)
+    end_date = pd.Timestamp.now(tz="UTC").floor("H")
+    start_date = end_date - pd.Timedelta(days=30)
+    date_range = pd.date_range(start=start_date, end=end_date, freq="H")
+
+    grid_data = []
+    regions = df["region"].unique()
+
+    for region in regions:
+        for dt in date_range:
+            grid_data.append({
+                "timestamp": dt,
+                "region": region,
+                "month": dt.month,
+                "day_of_week": dt.dayofweek,
+                "hour": dt.hour,
+            })
+
+    grid_df = pd.DataFrame(grid_data)
+
+    # Mark alert hours
+    active_slots = set(zip(df["month"], df["day_of_week"], df["hour"], df["region"]))
+    grid_df["alert_occurrence"] = grid_df.apply(
+        lambda r: int((r["month"], r["day_of_week"], r["hour"], r["region"]) in active_slots),
+        axis=1
+    )
+
+    return grid_df
+
 
         except Exception as e:
             st.error(f"Error fetching data for region {uid}: {e}")
