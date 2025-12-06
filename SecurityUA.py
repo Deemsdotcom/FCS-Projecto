@@ -773,37 +773,37 @@ def render_risk_prediction_tab():
     st.header("Air Alert Attack Risk Model")
 
     # 1) Load data
-with st.spinner("Loading historical alerts..."):
-    alerts_df = load_historical_alerts_for_ml()
+    with st.spinner("Loading historical alerts..."):
+        alerts_df = load_historical_alerts_for_ml()
 
-if alerts_df.empty:
-    st.error("No alert data loaded. Cannot train model.")
-else:
-    st.success(f"Loaded {len(alerts_df)} rows of alert data.")
-
-    # 2) Train model
-    with st.spinner("Training attack risk model..."):
-        model, roc_auc = train_attack_risk_model(alerts_df)
-
-    if model is None:
-        st.warning("Model could not be trained (only one class present).")
+    if alerts_df.empty:
+        st.error("No alert data loaded. Cannot train model.")
     else:
-        st.write(f"Model ROC AUC: {roc_auc:.3f}")
+        st.success(f"Loaded {len(alerts_df)} rows of alert data.")
 
-        # 3) User inputs for prediction
-        st.subheader("Predict attack probability")
+        # 2) Train model
+        with st.spinner("Training attack risk model..."):
+            model, roc_auc = train_attack_risk_model(alerts_df)
 
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            month = st.number_input("Month (1–12)", min_value=1, max_value=12, value=1)
-        with col2:
-            day_of_week = st.number_input("Day of week (0=Mon ... 6=Sun)", min_value=0, max_value=6, value=0)
-        with col3:
-            hour = st.number_input("Hour (0–23)", min_value=0, max_value=23, value=12)
+        if model is None:
+            st.warning("Model could not be trained (only one class present).")
+        else:
+            st.write(f"Model ROC AUC: {roc_auc:.3f}")
 
-        if st.button("Predict"):
-            prob = predict_attack_probability(model, month, day_of_week, hour)
-            st.metric("Predicted attack probability", f"{prob:.1%}")
+            # 3) User inputs for prediction
+            st.subheader("Predict attack probability")
+
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                month = st.number_input("Month (1–12)", min_value=1, max_value=12, value=1)
+            with col2:
+                day_of_week = st.number_input("Day of week (0=Mon ... 6=Sun)", min_value=0, max_value=6, value=0)
+            with col3:
+                hour = st.number_input("Hour (0–23)", min_value=0, max_value=23, value=12)
+
+            if st.button("Predict"):
+                prob = predict_attack_probability(model, month, day_of_week, hour)
+                st.metric("Predicted attack probability", f"{prob:.1%}")
 
 class SafetyModel:
     def __init__(self):
@@ -1110,109 +1110,116 @@ def main():
     geolocator = Nominatim(user_agent="security_ua_tracker")
     sidebar = Sidebar(geolocator)
 
-    # Alerts
-    try:
-        alerts_data = alerts_client.get_active_alerts()
-    except:
-        alerts_data = {}
+    # Create Tabs
+    tab1, tab2 = st.tabs(["Monitor", "Risk Prediction"])
 
-    if alerts_data:
-        df_alerts = build_alerts_dataframe(alerts_data)
-        if not df_alerts.empty:
-            with st.expander("🚨 Active Alerts", expanded=False):
-                st.dataframe(df_alerts, use_container_width=True)
-
-    # Map Settings
-    user_settings = sidebar.render()
-    user_lat = user_settings['lat']
-    user_lon = user_settings['lon']
-
-    st.markdown("### 🗺️ Live Shelter Map")
-
-    # Load Data
-    with st.spinner("Loading shelters..."):
+    with tab1:
+        # Alerts
         try:
-            shelters_raw = load_data()
-            if isinstance(shelters_raw, pd.DataFrame):
-                shelters_raw = shelters_raw.to_dict('records')
+            alerts_data = alerts_client.get_active_alerts()
         except:
-            shelters_raw = []
+            alerts_data = {}
 
-    # Process & Filter
-    shelters_df = processor.process_shelters(shelters_raw, user_lat, user_lon)
-    
-    # REMOVED: Type Filter Logic
-    # (The code that filtered by selected_type is gone)
+        if alerts_data:
+            df_alerts = build_alerts_dataframe(alerts_data)
+            if not df_alerts.empty:
+                with st.expander("🚨 Active Alerts", expanded=False):
+                    st.dataframe(df_alerts, use_container_width=True)
 
-    # Distance Filter
-    nearby_df = shelters_df[shelters_df['distance_m'] <= user_settings['max_dist']]
-    
-    if nearby_df.empty and not shelters_df.empty:
-        st.warning(f"⚠️ No shelters found within {user_settings['max_dist']}m. Showing the closest 10.")
-        shelters_df = shelters_df.head(10)
-    else:
-        shelters_df = nearby_df
+        # Map Settings
+        user_settings = sidebar.render()
+        user_lat = user_settings['lat']
+        user_lon = user_settings['lon']
 
-    # Routing Logic
-    nearest_shelter = pd.Series()
-    route_geojson = None
-    safety_score = 0
-    time_to_danger = safety_model.predict_time_to_danger("Kyiv")
-    is_alert_active = False
+        st.markdown("### 🗺️ Live Shelter Map")
 
-    if not shelters_df.empty:
-        # Funnel (Top 5)
-        candidates = shelters_df.head(5).copy()
+        # Load Data
+        with st.spinner("Loading shelters..."):
+            try:
+                shelters_raw = load_data()
+                if isinstance(shelters_raw, pd.DataFrame):
+                    shelters_raw = shelters_raw.to_dict('records')
+            except:
+                shelters_raw = []
 
-        # Matrix API
-        with st.spinner("Calculating optimal route..."):
-            nearest_shelter = routing_client.find_quickest_shelter(
-                user_lon, user_lat, candidates, profile=user_settings['travel_mode']
+        # Process & Filter
+        shelters_df = processor.process_shelters(shelters_raw, user_lat, user_lon)
+        
+        # REMOVED: Type Filter Logic
+        # (The code that filtered by selected_type is gone)
+
+        # Distance Filter
+        nearby_df = shelters_df[shelters_df['distance_m'] <= user_settings['max_dist']]
+        
+        if nearby_df.empty and not shelters_df.empty:
+            st.warning(f"⚠️ No shelters found within {user_settings['max_dist']}m. Showing the closest 10.")
+            shelters_df = shelters_df.head(10)
+        else:
+            shelters_df = nearby_df
+
+        # Routing Logic
+        nearest_shelter = pd.Series()
+        route_geojson = None
+        safety_score = 0
+        time_to_danger = safety_model.predict_time_to_danger("Kyiv")
+        is_alert_active = False
+
+        if not shelters_df.empty:
+            # Funnel (Top 5)
+            candidates = shelters_df.head(5).copy()
+
+            # Matrix API
+            with st.spinner("Calculating optimal route..."):
+                nearest_shelter = routing_client.find_quickest_shelter(
+                    user_lon, user_lat, candidates, profile=user_settings['travel_mode']
+                )
+
+            # Route Line
+            route_geojson = routing_client.get_route(
+                (user_lon, user_lat),
+                (nearest_shelter['lon'], nearest_shelter['lat']),
+                profile=user_settings['travel_mode']
+            )
+            
+            # Scoring
+            protection = nearest_shelter.get('Protection Score', 5)
+            safety_score = safety_model.predict_safety_score(
+                nearest_shelter['distance_m'], is_alert_active, protection
             )
 
-        # Route Line
-        route_geojson = routing_client.get_route(
-            (user_lon, user_lat),
-            (nearest_shelter['lon'], nearest_shelter['lat']),
-            profile=user_settings['travel_mode']
-        )
-        
-        # Scoring
-        protection = nearest_shelter.get('Protection Score', 5)
-        safety_score = safety_model.predict_safety_score(
-            nearest_shelter['distance_m'], is_alert_active, protection
-        )
+        # Render Metrics
+        if 'duration_s' in nearest_shelter:
+            import math
+            mins = math.ceil(nearest_shelter['duration_s'] / 60)
+            mode = "Walking" if user_settings['travel_mode'] == 'foot-walking' else "Driving"
+            
+            c1, c2, c3 = st.columns(3)
+            time_display = f"{mins} min" if mins > 0 else "< 1 min"
+            c1.metric(f"Time to Shelter ({mode})", time_display, nearest_shelter['name'])
+            
+            delta_color = "normal"
+            if safety_score > 80: delta_color = "normal"
+            elif safety_score < 50: delta_color = "inverse"
+            c2.metric("Safety Score", f"{int(safety_score)}/100", delta_color=delta_color)
+            
+            c3.metric("Est. Danger In", f"{time_to_danger} min")
+        else:
+            dashboard.render_metrics(nearest_shelter, safety_score, time_to_danger)
 
-    # Render Metrics
-    if 'duration_s' in nearest_shelter:
-        import math
-        mins = math.ceil(nearest_shelter['duration_s'] / 60)
-        mode = "Walking" if user_settings['travel_mode'] == 'foot-walking' else "Driving"
-        
-        c1, c2, c3 = st.columns(3)
-        time_display = f"{mins} min" if mins > 0 else "< 1 min"
-        c1.metric(f"Time to Shelter ({mode})", time_display, nearest_shelter['name'])
-        
-        delta_color = "normal"
-        if safety_score > 80: delta_color = "normal"
-        elif safety_score < 50: delta_color = "inverse"
-        c2.metric("Safety Score", f"{int(safety_score)}/100", delta_color=delta_color)
-        
-        c3.metric("Est. Danger In", f"{time_to_danger} min")
-    else:
-        dashboard.render_metrics(nearest_shelter, safety_score, time_to_danger)
+        # Render Map
+        map_data = map_component.render(user_lat, user_lon, shelters_df, route_geojson)
 
-    # Render Map
-    map_data = map_component.render(user_lat, user_lon, shelters_df, route_geojson)
+        # Map Click (Note: Logic exists but button removed from Sidebar UI)
+        if map_data and map_data.get("last_clicked"):
+            lat = map_data["last_clicked"]["lat"]
+            lng = map_data["last_clicked"]["lng"]
+            if lat != st.session_state.user_lat or lng != st.session_state.user_lon:
+                st.session_state.user_lat = lat
+                st.session_state.user_lon = lng
+                st.rerun()
 
-    # Map Click (Note: Logic exists but button removed from Sidebar UI)
-    if map_data and map_data.get("last_clicked"):
-        lat = map_data["last_clicked"]["lat"]
-        lng = map_data["last_clicked"]["lng"]
-        if lat != st.session_state.user_lat or lng != st.session_state.user_lon:
-            st.session_state.user_lat = lat
-            st.session_state.user_lon = lng
-            st.rerun()
+    with tab2:
+        render_risk_prediction_tab()
 
     if auto_refresh:
         time.sleep(refresh_interval)
