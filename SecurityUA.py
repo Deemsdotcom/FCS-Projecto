@@ -980,6 +980,35 @@ class Dashboard:
         with cols[2]:
             st.metric("Est. Time to Danger", f"{time_to_danger} min")
 
+    def render_shelter_scores(self, shelter_row):
+        """
+        Renders a breakdown of the shelter's heuristic scores.
+        """
+        if shelter_row.empty:
+            return
+
+        st.subheader("📊 Shelter Quality Ratings")
+        st.info("ℹ️ Note: These scores are heuristic estimates based on shelter type and available metadata, not real-time verified conditions.")
+
+        score_cols = [
+            "Protection Score",
+            "Infrastructure Score",
+            "Accessibility Score",
+            "Capacity Score",
+            "Reliability Score"
+        ]
+
+        # Use columns to display small progress bars or metrics
+        cols = st.columns(len(score_cols))
+        
+        for idx, col in enumerate(cols):
+            score_name = score_cols[idx]
+            val = shelter_row.get(score_name, 0)
+            with col:
+                st.write(f"**{score_name.replace(' Score', '')}**")
+                st.progress(int(val) / 10)
+                st.caption(f"{val}/10")
+
 
 class Sidebar:
     def __init__(self, geolocator):
@@ -1205,6 +1234,11 @@ def main():
             c3.metric("Est. Danger In", f"{time_to_danger} min")
         else:
             dashboard.render_metrics(nearest_shelter, safety_score, time_to_danger)
+
+        # Render Shelter Scores
+        if not nearest_shelter.empty:
+            st.markdown("---")
+            dashboard.render_shelter_scores(nearest_shelter)
 
         # Render Map
         map_data = map_component.render(user_lat, user_lon, shelters_df, route_geojson)
