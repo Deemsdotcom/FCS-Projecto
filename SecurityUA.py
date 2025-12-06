@@ -1078,7 +1078,7 @@ def main():
     tab1, tab2 = st.tabs(["🛡️ SecurityUA – Ukraine Air Alerts Monitor", "Air Alert Attack Risk Model (ML)"])
 
     with tab1:
-    if alerts_data:
+        if alerts_data:
         df_alerts = build_alerts_dataframe(alerts_data)
         if not df_alerts.empty:
             with st.expander("🚨 Active Alerts", expanded=False):
