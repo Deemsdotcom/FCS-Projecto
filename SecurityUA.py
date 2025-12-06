@@ -1077,11 +1077,7 @@ def main():
     # Tabs
     tab1, tab2 = st.tabs(["🛡️ SecurityUA – Ukraine Air Alerts Monitor", "Air Alert Attack Risk Model (ML)"])
 
-    # Tabs
-    tab1, tab2 = st.tabs(["🛡️ SecurityUA – Ukraine Air Alerts Monitor", "Air Alert Attack Risk Model (ML)"])
-
     with tab1:
-        # Correctly indented
         if alerts_data:
             df_alerts = build_alerts_dataframe(alerts_data)
             if not df_alerts.empty:
