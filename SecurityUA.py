@@ -597,7 +597,7 @@ def load_historical_alerts_for_ml() -> pd.DataFrame:
 
     # Feature engineering
     df["month"] = df["timestamp"].dt.month
-    df["day_of_week"] = df["timestamp"].dt.dayofweek
+    df["day"] = df["timestamp"].dt.day
     df["hour"] = df["timestamp"].dt.hour
 
     # Build full hourly grid (last 30 days)
@@ -614,16 +614,16 @@ def load_historical_alerts_for_ml() -> pd.DataFrame:
                 "timestamp": dt,
                 "region": region,
                 "month": dt.month,
-                "day_of_week": dt.dayofweek,
+                "day": dt.day,
                 "hour": dt.hour,
             })
 
     grid_df = pd.DataFrame(grid_data)
 
     # Mark alert hours
-    active_slots = set(zip(df["month"], df["day_of_week"], df["hour"], df["region"]))
+    active_slots = set(zip(df["month"], df["day"], df["hour"], df["region"]))
     grid_df["alert_occurrence"] = grid_df.apply(
-        lambda r: int((r["month"], r["day_of_week"], r["hour"], r["region"]) in active_slots),
+        lambda r: int((r["month"], r["day"], r["hour"], r["region"]) in active_slots),
         axis=1
     )
 
@@ -721,7 +721,7 @@ def train_attack_risk_model(alerts_df: pd.DataFrame):
     if alerts_df.empty or "alert_occurrence" not in alerts_df.columns:
         raise ValueError("Input DataFrame is empty or missing required columns.")
 
-    feature_cols = ["month", "day_of_week", "hour"]
+    feature_cols = ["month", "day", "hour"]
     X = alerts_df[feature_cols].values
     y = alerts_df["alert_occurrence"].values
 
@@ -752,21 +752,21 @@ def train_attack_risk_model(alerts_df: pd.DataFrame):
     return model, roc_auc
 
 
-def predict_attack_probability(model, month: int, day_of_week: int, hour: int) -> float:
+def predict_attack_probability(model, month: int, day: int, hour: int) -> float:
     """
     Uses the trained model to predict the probability of an attack.
     """
     if not (1 <= month <= 12):
         raise ValueError("Month must be between 1 and 12")
-    if not (0 <= day_of_week <= 6):
-        raise ValueError("Day of week must be between 0 and 6")
+    if not (1 <= day <= 31):
+        raise ValueError("Day must be between 1 and 31")
     if not (0 <= hour <= 23):
         raise ValueError("Hour must be between 0 and 23")
 
     if model is None:
         return 0.0
 
-    X_new = np.array([[month, day_of_week, hour]], dtype=float)
+    X_new = np.array([[month, day, hour]], dtype=float)
     return model.predict_proba(X_new)[0, 1]
 
 def render_risk_prediction_tab():
@@ -797,12 +797,12 @@ def render_risk_prediction_tab():
             with col1:
                 month = st.number_input("Month (1–12)", min_value=1, max_value=12, value=1)
             with col2:
-                day_of_week = st.number_input("Day of week (0=Mon ... 6=Sun)", min_value=0, max_value=6, value=0)
+                day = st.number_input("Day (1-31)", min_value=1, max_value=31, value=1)
             with col3:
                 hour = st.number_input("Hour (0–23)", min_value=0, max_value=23, value=12)
 
             if st.button("Predict"):
-                prob = predict_attack_probability(model, month, day_of_week, hour)
+                prob = predict_attack_probability(model, month, day, hour)
                 st.metric("Predicted attack probability", f"{prob:.1%}")
 
 class SafetyModel:
