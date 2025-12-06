@@ -1077,17 +1077,21 @@ def main():
     # Tabs
     tab1, tab2 = st.tabs(["🛡️ SecurityUA – Ukraine Air Alerts Monitor", "Air Alert Attack Risk Model (ML)"])
 
-    with tab1:
-        if alerts_data:
-        df_alerts = build_alerts_dataframe(alerts_data)
-        if not df_alerts.empty:
-            with st.expander("🚨 Active Alerts", expanded=False):
-                st.dataframe(df_alerts, use_container_width=True)
+    # Tabs
+    tab1, tab2 = st.tabs(["🛡️ SecurityUA – Ukraine Air Alerts Monitor", "Air Alert Attack Risk Model (ML)"])
 
-    # Map Settings
-    user_settings = sidebar.render()
-    user_lat = user_settings['lat']
-    user_lon = user_settings['lon']
+    with tab1:
+        # Correctly indented
+        if alerts_data:
+            df_alerts = build_alerts_dataframe(alerts_data)
+            if not df_alerts.empty:
+                with st.expander("🚨 Active Alerts", expanded=False):
+                    st.dataframe(df_alerts, use_container_width=True)
+
+        # Map Settings
+        user_settings = sidebar.render()
+        user_lat = user_settings['lat']
+        user_lon = user_settings['lon']
 
     st.markdown("### 🗺️ Live Shelter Map")
 
