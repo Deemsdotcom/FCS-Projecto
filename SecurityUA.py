@@ -503,6 +503,8 @@ ALL_UKRAINE_REGION_UIDS = [
 ]
 
 
+@st.cache_data(ttl=3600)
+def load_historical_alerts_for_ml() -> pd.DataFrame:
     # Get the last month of alert history from the API to teach our model.
     # We look at all regions.
     headers = {"Authorization": f"Bearer {ALERTS_API_TOKEN}"}
@@ -659,6 +661,7 @@ ALL_UKRAINE_REGION_UIDS = [
 
 @st.cache_resource(show_spinner=True)
 
+def train_attack_risk_model(alerts_df: pd.DataFrame):
     # Teach the model to guess if an alert is coming based on the date and time.
     if alerts_df.empty or "alert_occurrence" not in alerts_df.columns:
         raise ValueError("Input DataFrame is empty or missing required columns.")
@@ -695,6 +698,7 @@ ALL_UKRAINE_REGION_UIDS = [
 
 
 
+def predict_attack_probability(model, month: int, day: int, hour: int) -> float:
     # Ask the trained model how likely an attack is right now.
     if not (1 <= month <= 12):
         raise ValueError("Month must be between 1 and 12")
