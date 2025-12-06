@@ -9,7 +9,6 @@ from geopy.distance import geodesic
 import json
 import os
 import numpy as np
-
 import folium
 from streamlit_folium import st_folium
 from sklearn.model_selection import train_test_split
