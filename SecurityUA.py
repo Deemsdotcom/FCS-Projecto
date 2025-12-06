@@ -16,6 +16,7 @@ from streamlit_folium import st_folium
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import roc_auc_score
+from sklearn.preprocessing import LabelEncoder
 from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
 
@@ -627,7 +628,11 @@ def load_historical_alerts_for_ml() -> pd.DataFrame:
         axis=1
     )
 
-    return grid_df
+    # Encode Regions
+    le = LabelEncoder()
+    grid_df["region_encoded"] = le.fit_transform(grid_df["region"])
+
+    return grid_df, le
 
 
     df = pd.DataFrame(all_alerts)
@@ -721,7 +726,7 @@ def train_attack_risk_model(alerts_df: pd.DataFrame):
     if alerts_df.empty or "alert_occurrence" not in alerts_df.columns:
         raise ValueError("Input DataFrame is empty or missing required columns.")
 
-    feature_cols = ["month", "day", "hour"]
+    feature_cols = ["month", "day", "hour", "region_encoded"]
     X = alerts_df[feature_cols].values
     y = alerts_df["alert_occurrence"].values
 
@@ -752,7 +757,7 @@ def train_attack_risk_model(alerts_df: pd.DataFrame):
     return model, roc_auc
 
 
-def predict_attack_probability(model, month: int, day: int, hour: int) -> float:
+def predict_attack_probability(model, month: int, day: int, hour: int, region_encoded: int) -> float:
     """
     Uses the trained model to predict the probability of an attack.
     """
@@ -766,15 +771,21 @@ def predict_attack_probability(model, month: int, day: int, hour: int) -> float:
     if model is None:
         return 0.0
 
-    X_new = np.array([[month, day, hour]], dtype=float)
+    X_new = np.array([[month, day, hour, region_encoded]], dtype=float)
     return model.predict_proba(X_new)[0, 1]
 
-def render_risk_prediction_tab():
+def render_risk_prediction_tab(sidebar_city_name=None):
     st.header("Air Alert Attack Risk Model")
 
     # 1) Load data
     with st.spinner("Loading historical alerts..."):
-        alerts_df = load_historical_alerts_for_ml()
+        # Unpack tuple
+        result = load_historical_alerts_for_ml()
+        if isinstance(result, tuple):
+             alerts_df, le = result
+        else:
+             alerts_df = result
+             le = None
 
     if alerts_df.empty:
         st.error("No alert data loaded. Cannot train model.")
@@ -793,16 +804,37 @@ def render_risk_prediction_tab():
             # 3) User inputs for prediction
             st.subheader("Predict attack probability")
 
-            col1, col2, col3 = st.columns(3)
+            col1, col2 = st.columns(2)
+            col3, col4 = st.columns(2)
+
             with col1:
                 month = st.number_input("Month (1–12)", min_value=1, max_value=12, value=1)
             with col2:
                 day = st.number_input("Day (1-31)", min_value=1, max_value=31, value=1)
             with col3:
                 hour = st.number_input("Hour (0–23)", min_value=0, max_value=23, value=12)
+            
+            # Region Selection with Auto-Select logic
+            with col4:
+                available_regions = sorted(list(le.classes_)) if le else []
+                default_ix = 0
+                
+                # Try to fuzzy match sidebar city to region
+                if sidebar_city_name:
+                     for i, r in enumerate(available_regions):
+                        # Simple heuristic: if city name is in region name (e.g. 'Kyiv' in 'Kyiv Oblast')
+                        if sidebar_city_name in r:
+                            default_ix = i
+                            break
+                
+                selected_region = st.selectbox("Region", available_regions, index=default_ix)
+                
+                region_encoded = 0
+                if le and selected_region:
+                    region_encoded = le.transform([selected_region])[0]
 
             if st.button("Predict"):
-                prob = predict_attack_probability(model, month, day, hour)
+                prob = predict_attack_probability(model, month, day, hour, region_encoded)
                 st.metric("Predicted attack probability", f"{prob:.1%}")
 
 class SafetyModel:
@@ -1067,6 +1099,10 @@ class Sidebar:
             lat, lon = coords['lat'], coords['lon']
             st.session_state.user_lat = lat
             st.session_state.user_lon = lon
+            
+            current_city = city_name
+        else:
+            current_city = None
 
         elif input_method == "Address Search":
             address = st.sidebar.text_input("Enter Address (e.g. 'Maidan Nezalezhnosti, Kyiv')")
@@ -1113,7 +1149,8 @@ class Sidebar:
             "selected_type": "All", # Hardcoded 'All' since button is gone
             "max_dist": max_dist,
             "input_method": input_method,
-            "travel_mode": travel_mode 
+            "travel_mode": travel_mode,
+            "city_name": current_city
         }
 # ==========================================
 # Main Application
@@ -1253,7 +1290,7 @@ def main():
                 st.rerun()
 
     with tab2:
-        render_risk_prediction_tab()
+        render_risk_prediction_tab(sidebar_city_name=user_settings.get('city_name'))
 
     if auto_refresh:
         time.sleep(refresh_interval)
