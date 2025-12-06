@@ -630,8 +630,8 @@ def load_historical_alerts_for_ml() -> pd.DataFrame:
     return grid_df
 
 
-        except Exception as e:
-            st.error(f"Error fetching data for region {uid}: {e}")
+    except Exception as e:
+        st.error(f"Error fetching data for region {uid}: {e}")
             continue
 
     if not all_alerts:
