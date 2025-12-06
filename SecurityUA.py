@@ -548,7 +548,33 @@ class Storage:
 # Constants for ML
 ALERTS_API_BASE_URL = "https://api.alerts.in.ua/v1"
 ALERTS_API_TOKEN = "3b9da58a53b958cab81355b22e3feb9c10593dc4ab2203"
-def get_all_ukraine_region_uids():
+ALERTS_API_BASE_URL = "https://api.alerts.in.ua/v1"
+ALERTS_API_TOKEN = "3b9da58a53b958cab81355b22e3feb9c10593dc4ab2203"
+
+
+@st.cache_data(ttl=3600)
+def get_all_ukraine_region_uids() -> list[int]:
+    """
+    Fetches all region UIDs for Ukraine from alerts.in.ua.
+    """
+    headers = {"Authorization": f"Bearer {ALERTS_API_TOKEN}"}
+    url = f"{ALERTS_API_BASE_URL}/regions.json"
+
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+
+        data = response.json()
+
+        # Expected structure:
+        # { "regions": [ { "uid": 1, ... }, ... ] }
+        return [region["uid"] for region in data.get("regions", [])]
+
+    except Exception as e:
+        st.error(f"Failed to fetch Ukraine region list: {e}")
+        return []
+
+
 
 @st.cache_data(ttl=3600)
 def load_historical_alerts_for_ml() -> pd.DataFrame:
