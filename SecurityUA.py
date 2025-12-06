@@ -9,8 +9,7 @@ from geopy.distance import geodesic
 import json
 import os
 import numpy as np
-from sklearn.linear_model import LinearRegression
-import pydeck as pdk
+
 import folium
 from streamlit_folium import st_folium
 from sklearn.model_selection import train_test_split
@@ -22,12 +21,10 @@ from geopy.extra.rate_limiter import RateLimiter
 ##### shelters
 @st.cache_data
 def load_data():
-    """
-    Loads 'shelters.json' (filters bad stuff) AND 'metro.json' (adds good stuff).
-    """
+    # Load 'shelters.json' (filtering out unsuitable ones) and 'metro.json' (adding metro stations).
     combined_shelters = []
     
-    # --- PART 1: Load the Huge File (shelters.json) ---
+    # Part 1: Load the big shelters file.
     try:
         with open("shelters.json", "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -39,7 +36,7 @@ def load_data():
                     if not geom or 'coordinates' not in geom: 
                         continue
                     
-                    # FILTER: Remove bus stops, etc.
+                    # We list types to exclude, like open bus stops or nature shelters.
                     bad_data = [
                         # Transport (Glass danger)
                         "public_transport", "taxi", "bus_stop", "platform",
@@ -98,13 +95,9 @@ def load_data():
 # ==========================================
 
 class AlertsClient:
-    """
-    Simple client for the Alerts API.
-
-    NOTE: For this project, the API token is hard-coded directly in the code.
-    This is not recommended for production systems, but is acceptable here
-    because your supervisors explicitly approved it.
-    """
+    # A simple client to talk to the Alerts API.
+    # Note: We're keeping the API token right here in the code.
+    # It's not usually safe, but it's okay for this specific project.
 
     # Base URL of the Alerts API
     BASE_URL = "https://api.alerts.in.ua/v1"
@@ -123,13 +116,9 @@ class AlertsClient:
             raise ValueError("API token not set in AlertsClient")
 
     def get_active_alerts(self) -> dict:
-        """
-        Fetches the currently active alerts from the real API.
-        Returns:
-            dict: JSON response from the API.
-        Raises:
-            requests.HTTPError or other RequestException on failure.
-        """
+        # Get the currently active alerts from the API.
+        
+        # We need to send the token in the headers.
 
         # The API requires the token in the Authorization header
         headers = {
@@ -150,27 +139,9 @@ class AlertsClient:
         return response.json()
 
 
-def build_alerts_dataframe(alerts_json: dict) -> pd.DataFrame:
-    """
-    Converts the API JSON response into a pandas DataFrame that is easy to display.
 
-    Expected JSON structure (simplified example):
-    {
-        "alerts": [
-            {
-                "id": 1,
-                "location_title": "Kyiv Oblast",
-                "location_type": "oblast",
-                "started_at": "...",
-                "finished_at": null,
-                "alert_type": "air_raid",
-                "notes": "..."
-            },
-            ...
-        ],
-        "meta": { ... }
-    }
-    """
+def build_alerts_dataframe(alerts_json: dict) -> pd.DataFrame:
+    # Turn the API answer into a pandas DataFrame so we can show it easily.
     alerts_list = alerts_json.get("alerts", [])
 
     if not alerts_list:
@@ -212,10 +183,7 @@ class RoutingClient:
             self.client = None
 
     def find_quickest_shelter(self, user_lon, user_lat, candidates_df, profile='foot-walking'):
-        """
-        Takes the top 5 shelters, asks Matrix API for actual travel times, 
-        and returns the single best shelter row.
-        """
+        # Pick the top 5 shelters and ask the Matrix API which one is actually fastest to reach.
         if not self.client or candidates_df.empty:
             # Fallback: If API is down, just return the first one (closest by straight line)
             return candidates_df.iloc[0] 
@@ -252,9 +220,7 @@ class RoutingClient:
             return candidates_df.iloc[0] 
 
     def get_route(self, start_coords, end_coords, profile='foot-walking'):
-        """
-        Calculates the specific turn-by-turn path to the chosen shelter.
-        """
+        # Get the actual path (turn-by-turn) to show on the map.
         if not self.client:
             return self._get_mock_route(start_coords, end_coords)
         try:
@@ -281,9 +247,7 @@ class OSMClient:
     OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 
     def get_nearby_shelters(self, lat, lon, radius=1000):
-        """
-        Fetches shelters within a given radius (in meters) of the coordinates.
-        """
+        # Find shelters near the user (default 1000m radius).
         overpass_query = f"""
         [out:json];
         (
@@ -304,9 +268,7 @@ class OSMClient:
             return []
 
     def _parse_osm_data(self, data):
-        """
-        Parses the raw OSM JSON response into a list of shelter dictionaries.
-        """
+        # Convert the raw OpenStreetMap JSON into a nice list of dictionaries.
         shelters = []
         for element in data.get('elements', []):
             lat = element.get('lat') or element.get('center', {}).get('lat')
@@ -331,9 +293,7 @@ class NominatimClient:
     USER_AGENT = "SafeShelterUkraine/1.0"
 
     def geocode(self, query):
-        """
-        Converts an address to coordinates.
-        """
+        # Turn an address (like "Kyiv, Maidan") into coordinates (lat/lon).
         params = {
             "q": query,
             "format": "json",
@@ -357,9 +317,7 @@ class NominatimClient:
             return None
 
     def reverse_geocode(self, lat, lon):
-        """
-        Converts coordinates to an address.
-        """
+        # Turn coordinates back into an address string.
         params = {
             "lat": lat,
             "lon": lon,
@@ -393,9 +351,7 @@ class DataProcessor:
     ]
 
     def process_shelters(self, shelters_data, user_lat, user_lon):
-        """
-        Cleans shelter data, calculates distance, classifies type, and assigns scores.
-        """
+        # Clean up the shelter data, figure out how far away they are, and give them a score.
         if not shelters_data:
             return pd.DataFrame()
 
@@ -416,9 +372,7 @@ class DataProcessor:
         return df
 
     def _enrich_shelter_data(self, row):
-        """
-        Applies classification and scoring to a single shelter row.
-        """
+        # Figure out the type and score for just one shelter.
         tags = row.get('tags', {})
 
         # 1. Classify Type
@@ -435,9 +389,7 @@ class DataProcessor:
         return row
 
     def _classify_shelter(self, tags):
-        """
-        Maps OSM tags to the 7 canonical shelter types.
-        """
+        # Decide which of the 7 types this shelter is, based on its tags.
         # Heuristic mapping
         if tags.get('access') == 'private' or tags.get('military') == 'bunker':
             return "Hardened Military Bunkers"
@@ -459,9 +411,7 @@ class DataProcessor:
         return "Improvised / Expedient Shelters"
 
     def _generate_scores(self, shelter_type, tags):
-        """
-        Generates the 5 canonical scores (1-10) based on type and tags.
-        """
+        # Make up some scores (1-10) based on the type we found.
         # Base scores by type (heuristic)
         base_scores = {
             "Basement / Sub-grade Civilian Shelters": 5,
@@ -487,9 +437,7 @@ class DataProcessor:
         return scores
 
     def filter_shelters(self, df, max_distance=None, shelter_type=None):
-        """
-        Filters shelters based on criteria.
-        """
+        # Filter shelters based on max distance or type.
         if df.empty:
             return df
 
@@ -555,16 +503,13 @@ ALL_UKRAINE_REGION_UIDS = [
     25, 26, 27, 28, 29, 30, 31
 ]
 
-@st.cache_data(ttl=3600)
-def load_historical_alerts_for_ml() -> pd.DataFrame:
-    """
-    Downloads and prepares historical alert data from alerts.in.ua for ML,
-    using ALL regions in Ukraine.
-    """
+
+    # Get the last month of alert history from the API to teach our model.
+    # We look at all regions.
     headers = {"Authorization": f"Bearer {ALERTS_API_TOKEN}"}
     all_alerts = []
 
-    # ✅ Use static list instead of broken API endpoint
+    # Use static list instead of broken API endpoint
     region_uids = ALL_UKRAINE_REGION_UIDS
 
     for uid in region_uids:
@@ -714,10 +659,8 @@ def load_historical_alerts_for_ml() -> pd.DataFrame:
 
 
 @st.cache_resource(show_spinner=True)
-def train_attack_risk_model(alerts_df: pd.DataFrame):
-    """
-    Prepares features and trains a classifier to predict attack probability.
-    """
+
+    # Teach the model to guess if an alert is coming based on the date and time.
     if alerts_df.empty or "alert_occurrence" not in alerts_df.columns:
         raise ValueError("Input DataFrame is empty or missing required columns.")
 
@@ -752,10 +695,8 @@ def train_attack_risk_model(alerts_df: pd.DataFrame):
     return model, roc_auc
 
 
-def predict_attack_probability(model, month: int, day: int, hour: int) -> float:
-    """
-    Uses the trained model to predict the probability of an attack.
-    """
+
+    # Ask the trained model how likely an attack is right now.
     if not (1 <= month <= 12):
         raise ValueError("Month must be between 1 and 12")
     if not (1 <= day <= 31):
@@ -811,9 +752,7 @@ class SafetyModel:
         pass
 
     def predict_safety_score(self, distance_m, is_alert_active, protection_score=5):
-        """
-        Predicts a safety score (0-100) based on distance, alert status, and shelter protection.
-        """
+        # Guess how safe you are (0-100) based on distance and shelter quality.
         # Simple heuristic: closer & better-protected shelters are safer
         base_score = 100 - (distance_m / 50)  # lose 1 point every 50 m
 
@@ -827,18 +766,14 @@ class SafetyModel:
         return max(0, min(100, base_score))
 
     def predict_time_to_danger(self, region_id):
-        """
-        Mock prediction for time to danger in minutes.
-        """
+        # Guess how long until things get dangerous (minutes).
         # Random prediction for demo purposes
         return random.randint(5, 30)
 
 class ReliabilityModel:
     def calculate_reliability(self, ratings_df, shelter_id):
-        """
-        Calculates a reliability score based on user ratings.
-        Uses a Bayesian average to handle shelters with few ratings.
-        """
+        # Figure out if a shelter is reliable based on user votes.
+        # We use a math trick (Bayesian average) so one bad vote doesn't ruin a new shelter.
         if ratings_df.empty:
             return 5.0  # Default neutral score
 
@@ -860,9 +795,7 @@ class ReliabilityModel:
         return round(weighted_rating, 2)
 
     def analyze_sentiment(self, comment):
-        """
-        Mock sentiment analysis.
-        """
+        # Determine if a comment is positive or negative.
         positive_keywords = ['safe', 'clean', 'good', 'spacious', 'accessible']
         negative_keywords = ['dirty', 'crowded', 'closed', 'locked', 'unsafe']
 
@@ -885,10 +818,8 @@ class ReliabilityModel:
 
 class MapComponent:
     def render(self, user_lat, user_lon, shelters_df, route_geojson=None):
-        """
-        Renders the map with user location, shelters, and optional route using Folium.
-        Returns the map data to handle click events.
-        """
+        # Draw the map with the user, the shelters, and the path (if we have one).
+        # We return the map so we can tell where the user clicked.
         # Create base map
         m = folium.Map(location=[user_lat, user_lon], zoom_start=14)
 
@@ -981,9 +912,7 @@ class Dashboard:
             st.metric("Est. Time to Danger", f"{time_to_danger} min")
 
     def render_shelter_scores(self, shelter_row):
-        """
-        Renders a breakdown of the shelter's heuristic scores.
-        """
+        # Show specific scores for the shelter (Protection, Capacity, etc.)
         if shelter_row.empty:
             return
 
@@ -1092,9 +1021,7 @@ class Sidebar:
             st.session_state.user_lat = lat
             st.session_state.user_lon = lon
 
-        # --- CLEANED UP SECTION ---
-        # I removed the "Shelter Filters" header and extra lines.
-        # I kept the slider because the map logic needs 'max_dist' to work.
+
         st.sidebar.markdown("---")
         max_dist = st.sidebar.slider("Max Search Distance (m)", 500, 5000, 1000)
         
@@ -1174,8 +1101,7 @@ def main():
         # Process & Filter
         shelters_df = processor.process_shelters(shelters_raw, user_lat, user_lon)
         
-        # REMOVED: Type Filter Logic
-        # (The code that filtered by selected_type is gone)
+
 
         # Distance Filter
         nearby_df = shelters_df[shelters_df['distance_m'] <= user_settings['max_dist']]
