@@ -548,8 +548,7 @@ class Storage:
 # Constants for ML
 ALERTS_API_BASE_URL = "https://api.alerts.in.ua/v1"
 ALERTS_API_TOKEN = "3b9da58a53b958cab81355b22e3feb9c10593dc4ab2203"
-ALERTS_API_BASE_URL = "https://api.alerts.in.ua/v1"
-ALERTS_API_TOKEN = "3b9da58a53b958cab81355b22e3feb9c10593dc4ab2203"
+
 
 
 @st.cache_data(ttl=3600)
