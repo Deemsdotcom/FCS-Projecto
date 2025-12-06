@@ -1075,6 +1075,7 @@ class Sidebar:
         }
 
     def render(self):
+        current_city = None
         st.sidebar.header("Settings")
         st.sidebar.subheader("Your Location")
         
@@ -1101,8 +1102,6 @@ class Sidebar:
             st.session_state.user_lon = lon
             
             current_city = city_name
-        else:
-            current_city = None
 
         elif input_method == "Address Search":
             address = st.sidebar.text_input("Enter Address (e.g. 'Maidan Nezalezhnosti, Kyiv')")
