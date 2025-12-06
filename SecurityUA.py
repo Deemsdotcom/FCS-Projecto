@@ -569,9 +569,17 @@ def load_historical_alerts_for_ml() -> pd.DataFrame:
 
     for uid in region_uids:
         try:
+            # Respect API rate limits
+            time.sleep(0.5)
+            
             url = f"{ALERTS_API_BASE_URL}/regions/{uid}/alerts/month_ago.json"
             response = requests.get(url, headers=headers, timeout=10)
 
+            if response.status_code == 429:
+                st.warning(f"Rate limit hit for region {uid}. Waiting...")
+                time.sleep(2)
+                continue
+                
             if response.status_code != 200:
                 st.warning(f"Failed to fetch data for region {uid}: {response.status_code}")
                 continue
@@ -586,7 +594,7 @@ def load_historical_alerts_for_ml() -> pd.DataFrame:
                     "region": alert.get("location_title") or alert.get("location_oblast"),
                     "alert_active": 1,
                 })
-
+                
         except Exception as e:
             st.error(f"Error fetching data for region {uid}: {e}")
 
