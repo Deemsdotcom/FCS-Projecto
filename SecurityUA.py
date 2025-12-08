@@ -476,10 +476,11 @@ def load_historical_alerts_for_ml() -> (pd.DataFrame, list):
 
     df = pd.DataFrame(all_alerts)
 
-    # 2. Create Time Grid (Generate 0s and 1s)
-    # The API only gives us "When did an alert happen?" (Positives).
-    # But to train a model, we also need to know "When did NOTHING happen?" (Negatives or 0s).
-    # so we create a big grid of every hour for the last month and fill in the blanks.
+    # 2. Build the "Zeroes" (The Times When Nothing Happened)
+    # The API is great at telling us when alerts happened (the "1s"), but it says nothing about the peaceful times (the "0s").
+    # If we only showed the model the alerts, it would think the world is constantly ending! 
+    # So, we have to manually build a giant blank calendar for the last 30 days (filled with 0s) 
+    # and then stamp our alerts onto it. This gives the model a fair picture of reality.
     end_date = pd.Timestamp.now(tz='UTC').floor('H')
     start_date = end_date - pd.Timedelta(days=30)
     date_range = pd.date_range(start=start_date, end=end_date, freq='H')
@@ -508,122 +509,7 @@ def load_historical_alerts_for_ml() -> (pd.DataFrame, list):
     grid_df['alert_occurrence'] = grid_df.apply(is_active, axis=1)
 
     return grid_df, error_log
-    # Feature engineering
-    df["month"] = df["timestamp"].dt.month
-    df["day"] = df["timestamp"].dt.day
-    df["hour"] = df["timestamp"].dt.hour
 
-    # Build full hourly grid (last 30 days)
-    end_date = pd.Timestamp.now(tz="UTC").floor("H")
-    start_date = end_date - pd.Timedelta(days=30)
-    date_range = pd.date_range(start=start_date, end=end_date, freq="H")
-
-    grid_data = []
-    regions = df["region"].unique()
-
-    for region in regions:
-        for dt in date_range:
-            grid_data.append({
-                "timestamp": dt,
-                "region": region,
-                "month": dt.month,
-                "day": dt.day,
-                "hour": dt.hour,
-            })
-
-    grid_df = pd.DataFrame(grid_data)
-
-    # Mark alert hours
-    active_slots = set(zip(df["month"], df["day"], df["hour"], df["region"]))
-    grid_df["alert_occurrence"] = grid_df.apply(
-        lambda r: int((r["month"], r["day"], r["hour"], r["region"]) in active_slots),
-        axis=1
-    )
-
-    return grid_df
-
-
-    df = pd.DataFrame(all_alerts)
-
-    # Feature Engineering
-    df["month"] = df["timestamp"].dt.month
-    df["day_of_week"] = df["timestamp"].dt.dayofweek
-    df["hour"] = df["timestamp"].dt.hour
-
-    # Build binary target column alert_occurrence
-    # Group by time slots and region to see if an alert existed
-    # We want to know: for a given (month, day, hour), was there an alert?
-    # Since we only have alert events, we need to be careful.
-    # The current approach only has positive samples.
-    # To do this properly for a classifier, we usually need negative samples (times with no alerts).
-    # However, the prompt asks to "Group data by ... If there is at least one alert in that slot, alert_occurrence = 1, else 0."
-    # This implies we might need to generate a grid of all possible hours?
-    # Or just aggregate the existing alert data?
-    # "Return a clean, deduplicated DataFrame with: month, day_of_week, hour, region, alert_occurrence"
-    # If we only use the fetched alerts, we only have 1s.
-    # BUT, the prompt says: "Use real historical data... (not simulated data)".
-    # And "If there is at least one alert in that slot, alert_occurrence = 1, else 0."
-    # If I only have the alerts, I don't have the 0s.
-    # I will implement a simplified version that assumes we are characterizing the *alerts*
-    # OR I should generate a time range and merge.
-    # Given the constraints and the prompt's specific instruction on "Group data by...",
-    # I will assume the user wants me to aggregate the *alert* data.
-    # BUT, to train a classifier, we definitely need 0s.
-    # I will generate a time grid for the last month to create negative samples.
-
-    # Generate full time range for the last 30 days
-    end_date = pd.Timestamp.now(tz='UTC').floor('H')
-    start_date = end_date - pd.Timedelta(days=30)
-    date_range = pd.date_range(start=start_date, end=end_date, freq='H')
-
-    # Create a grid for each region
-    grid_data = []
-    regions = df['region'].unique()
-
-    for region in regions:
-        for dt in date_range:
-            grid_data.append({
-                "timestamp": dt,
-                "region": region,
-                "month": dt.month,
-                "day_of_week": dt.dayofweek,
-                "hour": dt.hour
-            })
-
-    grid_df = pd.DataFrame(grid_data)
-
-    # Mark alerts
-    # We need to check if an alert was active during that hour.
-    # The API gives 'started_at' and 'finished_at'.
-    # The prompt says "For each alert entry, create rows... timestamp: parsed from started_at".
-    # And "Group data by... If there is at least one alert in that slot...".
-    # This suggests we are binning the *start times*?
-    # "If there is at least one alert in that slot" (meaning an alert started in that hour?)
-    # I will follow the prompt literally: "Group data by ["month", "day_of_week", "hour", "region"]... If there is at least one alert in that slot, alert_occurrence = 1".
-    # This implies we are looking at the *presence* of an alert record in that bin.
-    # So I will stick to the prompt's implied logic:
-    # 1. We have a list of alerts with timestamps.
-    # 2. We group them.
-    # 3. But we still need 0s.
-    # I will stick to the grid approach to ensure we have 0s, otherwise the model is useless.
-
-    # Simplified approach to match prompt "Group data by..." likely implies we take the alerts,
-    # and maybe the user assumes we have non-alert data?
-    # "Return a clean, deduplicated DataFrame... alert_occurrence (int, 0 or 1)"
-    # I will generate the grid to be safe and robust.
-
-    # Mark 1s where we have alerts
-    # We'll match on (month, day, hour, region)
-
-    # Create a set of active slots from the alerts
-    active_slots = set(zip(df['month'], df['day_of_week'], df['hour'], df['region']))
-
-    def is_active(row):
-        return 1 if (row['month'], row['day_of_week'], row['hour'], row['region']) in active_slots else 0
-
-    grid_df['alert_occurrence'] = grid_df.apply(is_active, axis=1)
-
-    return grid_df
 
 
 @st.cache_resource(show_spinner=True)
