@@ -2,10 +2,12 @@ import streamlit as st
 import requests
 import random
 import time
+
 import openrouteservice
 import pandas as pd
 from geopy.distance import geodesic
 import json
+
 import numpy as np
 import folium
 from streamlit_folium import st_folium
@@ -748,7 +750,29 @@ class Dashboard:
             return
 
         st.subheader("📊 Shelter Quality Ratings")
-        st.info("ℹ️ Note: These scores are heuristic estimates based on shelter type and available metadata, not real-time verified conditions.")
+        
+        # Expandable explanation for how ratings are calculated
+        with st.expander("ℹ️ How are these ratings calculated?"):
+            st.markdown("""
+            **Shelter Quality Ratings** are heuristic estimates (1-10 scale) based on:
+            
+            - **Protection** (blast/shrapnel resistance) — Based on shelter type:
+              - Military bunkers: ~10/10
+              - Deep underground: ~9/10  
+              - Purpose-built blast shelters: ~8/10
+              - Basements: ~5/10
+              - Improvised shelters: ~3/10
+            
+            - **Infrastructure** (utilities, ventilation) — Similar to protection, with ±2 variance
+            
+            - **Accessibility** (ease of entry) — Random 3-10 (varies by location)
+            
+            - **Capacity** (how many people fit) — Random 4-9 (not based on real data)
+            
+            - **Reliability** (structural integrity) — Based on type with ±2 variance
+            
+            ⚠️ **Note:** These are estimates based on shelter type metadata, NOT real-time verified conditions.
+            """)
 
         score_cols = [
             "Protection Score",
@@ -1026,7 +1050,23 @@ def main():
                 delta_color = "normal"
             elif safety_score < 50:
                 delta_color = "inverse"
+            
+            # Safety Score with explanation
             c2.metric("Safety Score", f"{int(safety_score)}/100", delta_color=delta_color)
+            with c2:
+                with st.expander("ℹ️ How is Safety Score calculated?"):
+                    st.markdown("""
+                    **Safety Score** (0-100) is calculated as:
+                    
+                    1. Start at **100 points**
+                    2. **Subtract distance penalty:** -1 point per 50m to shelter
+                    3. **Add protection bonus:** +(shelter protection - 5) × 2
+                    4. **Subtract alert penalty:** -20 if air raid alert active
+                    
+                    **Example:**
+                    - Shelter 500m away (protection 8/10), no alert:
+                      - 100 - (500/50) + (8-5)×2 = 100 - 10 + 6 = **96/100**
+                    """)
             
             c3.metric("Est. Danger In", f"{time_to_danger} min")
         else:
