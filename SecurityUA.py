@@ -506,42 +506,69 @@ ALL_UKRAINE_REGION_UIDS = [
 
 @st.cache_data(ttl=3600)
 def load_historical_alerts_for_ml() -> pd.DataFrame:
-    # Get the last month of alert history from the API to teach our model.
-    # We look at all regions.
+    # 1. Fetch Data
     headers = {"Authorization": f"Bearer {ALERTS_API_TOKEN}"}
     all_alerts = []
-
-    # Use static list instead of broken API endpoint
     region_uids = ALL_UKRAINE_REGION_UIDS
 
     for uid in region_uids:
         try:
             url = f"{ALERTS_API_BASE_URL}/regions/{uid}/alerts/month_ago.json"
             response = requests.get(url, headers=headers, timeout=10)
-
-            if response.status_code != 200:
-                st.warning(f"Failed to fetch data for region {uid}: {response.status_code}")
-                continue
-
-            data = response.json()
-            alerts = data.get("alerts", [])
-
-            for alert in alerts:
-                started_at = pd.to_datetime(alert["started_at"])
-                all_alerts.append({
-                    "timestamp": started_at,
-                    "region": alert.get("location_title") or alert.get("location_oblast"),
-                    "alert_active": 1,
-                })
-
+            if response.status_code == 200:
+                data = response.json()
+                alerts = data.get("alerts", [])
+                for alert in alerts:
+                    started_at = pd.to_datetime(alert["started_at"])
+                    reg = alert.get("location_title") or alert.get("location_oblast")
+                    all_alerts.append({
+                        "timestamp": started_at,
+                        "region": reg,
+                        "month": started_at.month,
+                        "day_of_week": started_at.dayofweek,
+                        "hour": started_at.hour
+                    })
         except Exception as e:
-            st.error(f"Error fetching data for region {uid}: {e}")
+            # Just print to console to keep UI clean
+            print(f"Error fetching region {uid}: {e}")
 
     if not all_alerts:
         return pd.DataFrame()
 
     df = pd.DataFrame(all_alerts)
 
+    # 2. Create Time Grid (Generate 0s and 1s)
+    # We need to create 'safe' (0) hours to train the model properly
+    end_date = pd.Timestamp.now(tz='UTC').floor('H')
+    start_date = end_date - pd.Timedelta(days=30)
+    date_range = pd.date_range(start=start_date, end=end_date, freq='H')
+
+    grid_data = []
+    regions = df['region'].unique()
+
+    for region in regions:
+        for dt in date_range:
+            grid_data.append({
+                "timestamp": dt,
+                "region": region,
+                "month": dt.month,
+                "day": dt.day,          
+                "day_of_week": dt.dayofweek,
+                "hour": dt.hour
+            })
+
+    grid_df = pd.DataFrame(grid_data)
+
+    # 3. Calculate "alert_occurrence"
+    # Identify which slots in the grid actually had an alert
+    active_slots = set(zip(df['month'], df['day_of_week'], df['hour'], df['region']))
+
+    def is_active(row):
+        return 1 if (row['month'], row['day_of_week'], row['hour'], row['region']) in active_slots else 0
+
+    grid_df['alert_occurrence'] = grid_df.apply(is_active, axis=1)
+
+    return grid_df
     # Feature engineering
     df["month"] = df["timestamp"].dt.month
     df["day"] = df["timestamp"].dt.day
