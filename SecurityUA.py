@@ -149,23 +149,6 @@ def build_alerts_dataframe(alerts_json: dict) -> pd.DataFrame:
 
     df = pd.DataFrame(alerts_list)
 
-
-# Real-Time Alert State Check for User-Selected Region
-def is_region_under_air_raid(alerts_data: dict, region_name: str) -> bool:
-    """
-    Returns True if there is an active air_raid alert in the given region.
-    """
-    alerts = alerts_data.get("alerts", [])
-    for a in alerts:
-        if (
-            a.get("location_title") == region_name
-            and a.get("alert_type") == "air_raid"
-            and a.get("finished_at") is None
-        ):
-            return True
-    return False
-
-
     # Choose and reorder columns if they exist
     preferred_columns = [
         "id",
@@ -185,6 +168,23 @@ def is_region_under_air_raid(alerts_data: dict, region_name: str) -> bool:
             df[col] = pd.to_datetime(df[col], errors="coerce")
 
     return df
+
+
+# Real-Time Region-Specific Alert Notifications (UI toast + optional alarm)
+def is_region_under_air_raid(alerts_data: dict, region_name: str) -> bool:
+    """
+    Returns True if there is an active air_raid alert in the given region.
+    """
+    alerts = alerts_data.get("alerts", [])
+    for a in alerts:
+        if (
+            a.get("location_title") == region_name
+            and a.get("alert_type") == "air_raid"
+            and a.get("finished_at") is None
+        ):
+            return True
+    return False
+
 
 class RoutingClient:
     def __init__(self, api_key="eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6Ijg2ZjI2ODQ1Y2JhMzQ1YTJhNmU3MDgwNDM0NjI4NGY5IiwiaCI6Im11cm11cjY0In0="):
@@ -1118,12 +1118,12 @@ def main():
     st.set_page_config(page_title="SecurityUA", layout="wide")
     st.title("🛡️ SecurityUA – Ukraine Air Alerts Monitor")
 
-    # Sidebar
+    # Sidebar (global settings)
     st.sidebar.header("Settings")
     refresh_interval = st.sidebar.slider("Auto-refresh (sec)", 10, 300, 60)
     auto_refresh = st.sidebar.checkbox("Enable auto-refresh", value=True)
 
-    # Initialize
+    # Initialize clients / helpers
     alerts_client = AlertsClient()
     routing_client = RoutingClient() 
     processor = DataProcessor()
@@ -1137,64 +1137,61 @@ def main():
     # Create Tabs
     tab1, tab2 = st.tabs(["Monitor", "Risk Prediction"])
 
+    # =======================
+    # TAB 1: LIVE MONITORING
+    # =======================
     with tab1:
-        # Alerts
-            # Alerts
-        # Alerts
-    try:
-        alerts_data = alerts_client.get_active_alerts()
-    except:
-        alerts_data = {}
+        # --- Alerts + Region Notification ---
+        try:
+            alerts_data = alerts_client.get_active_alerts()
+        except Exception:
+            alerts_data = {}
 
-    watched_region = None  # ⬅️ we'll store the user's chosen region here
+        watched_region = None  # store the user-selected region
 
-    if alerts_data:
-        df_alerts = build_alerts_dataframe(alerts_data)
-        if not df_alerts.empty:
-            # Sidebar selectbox: which region should trigger notifications?
-            region_names = sorted(df_alerts["location_title"].dropna().unique())
-            if region_names:
-                watched_region = st.sidebar.selectbox(
-                    "🔔 Notify me about alerts in:",
-                    options=region_names,
-                    index=region_names.index("Kyiv Oblast") if "Kyiv Oblast" in region_names else 0
-                )
+        if alerts_data:
+            df_alerts = build_alerts_dataframe(alerts_data)
+            if not df_alerts.empty:
+                # Sidebar selectbox: which region should trigger notifications?
+                region_names = sorted(df_alerts["location_title"].dropna().unique())
+                if region_names:
+                    watched_region = st.sidebar.selectbox(
+                        "🔔 Notify me about alerts in:",
+                        options=region_names,
+                        index=region_names.index("Kyiv Oblast") if "Kyiv Oblast" in region_names else 0
+                    )
 
-            # Existing table of active alerts
-            with st.expander("🚨 Active Alerts", expanded=False):
-                st.dataframe(df_alerts, use_container_width=True)
+                # Existing table of active alerts
+                with st.expander("🚨 Active Alerts", expanded=False):
+                    st.dataframe(df_alerts, use_container_width=True)
 
-            # --- Notification logic for watched region ---
-    # Remember previous state across reruns
-    if "last_region_alert_active" not in st.session_state:
-        st.session_state.last_region_alert_active = False
+        # --- Real-Time Region-Specific Alert Notifications (UI toast + optional alarm) ---
+        if "last_region_alert_active" not in st.session_state:
+            st.session_state.last_region_alert_active = False
 
-    region_alert_active = False
-    if alerts_data and watched_region:
-        region_alert_active = is_region_under_air_raid(alerts_data, watched_region)
+        region_alert_active = False
+        if alerts_data and watched_region:
+            region_alert_active = is_region_under_air_raid(alerts_data, watched_region)
 
-    # Fire notification only when state changes: False -> True
-    if region_alert_active and not st.session_state.last_region_alert_active:
-        # Visual toast in the app
-        st.toast(f"🚨 NEW AIR ALERT in {watched_region}!", icon="⚠️")
+        # Fire notification only when state changes: False -> True
+        if region_alert_active and not st.session_state.last_region_alert_active:
+            # Visual toast in the app
+            st.toast(f"🚨 NEW AIR ALERT in {watched_region}!", icon="⚠️")
 
-        # Optional: small alarm sound (tab must be opened/allowed to play audio)
-        st.markdown(
-            """
-            <audio autoplay>
-                <source src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" type="audio/ogg">
-            </audio>
-            """,
-            unsafe_allow_html=True,
-        )
+            # Optional: small alarm sound (tab must be opened/allowed to play audio)
+            st.markdown(
+                """
+                <audio autoplay>
+                    <source src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" type="audio/ogg">
+                </audio>
+                """,
+                unsafe_allow_html=True,
+            )
 
-    # Update state for next rerun
-    st.session_state.last_region_alert_active = region_alert_active
-    # --- End notification logic ---
+        # Update state for next rerun
+        st.session_state.last_region_alert_active = region_alert_active
 
-    
-
-        # Map Settings
+        # --- Map & Shelter Logic ---
         user_settings = sidebar.render()
         user_lat = user_settings['lat']
         user_lon = user_settings['lon']
@@ -1207,13 +1204,11 @@ def main():
                 shelters_raw = load_data()
                 if isinstance(shelters_raw, pd.DataFrame):
                     shelters_raw = shelters_raw.to_dict('records')
-            except:
+            except Exception:
                 shelters_raw = []
 
         # Process & Filter
         shelters_df = processor.process_shelters(shelters_raw, user_lat, user_lon)
-        
-
 
         # Distance Filter
         nearby_df = shelters_df[shelters_df['distance_m'] <= user_settings['max_dist']]
@@ -1229,7 +1224,7 @@ def main():
         route_geojson = None
         safety_score = 0
         time_to_danger = safety_model.predict_time_to_danger("Kyiv")
-        is_alert_active = False
+        is_alert_active = False  # you could also wire this to alerts_data if you want
 
         if not shelters_df.empty:
             # Funnel (Top 5)
@@ -1265,8 +1260,10 @@ def main():
             c1.metric(f"Time to Shelter ({mode})", time_display, nearest_shelter['name'])
             
             delta_color = "normal"
-            if safety_score > 80: delta_color = "normal"
-            elif safety_score < 50: delta_color = "inverse"
+            if safety_score > 80:
+                delta_color = "normal"
+            elif safety_score < 50:
+                delta_color = "inverse"
             c2.metric("Safety Score", f"{int(safety_score)}/100", delta_color=delta_color)
             
             c3.metric("Est. Danger In", f"{time_to_danger} min")
@@ -1281,7 +1278,7 @@ def main():
         # Render Map
         map_data = map_component.render(user_lat, user_lon, shelters_df, route_geojson)
 
-        # Map Click (Note: Logic exists but button removed from Sidebar UI)
+        # Map Click: allow user to move their "You are here" marker by clicking
         if map_data and map_data.get("last_clicked"):
             lat = map_data["last_clicked"]["lat"]
             lng = map_data["last_clicked"]["lng"]
@@ -1290,12 +1287,17 @@ def main():
                 st.session_state.user_lon = lng
                 st.rerun()
 
+    # =======================
+    # TAB 2: RISK PREDICTION
+    # =======================
     with tab2:
         render_risk_prediction_tab()
 
+    # Global auto-refresh for the whole app
     if auto_refresh:
         time.sleep(refresh_interval)
         st.rerun()
+
 
 if __name__ == "__main__":
     main()
