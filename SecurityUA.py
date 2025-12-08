@@ -14,6 +14,7 @@ from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import LabelEncoder
 from geopy.geocoders import Nominatim
+import math
 
 
 ##### shelters
@@ -67,7 +68,7 @@ def load_data():
                     })
     except Exception as e:
         # If the file is missing, just print a small warning so we know.
-        print(f"Warning: shelters.json error: {e}")
+        st.warning(f"Warning: shelters.json error: {e}")
 
     # --- PART 2: Load the Metro File (metro.json) ---
     try:
@@ -1013,7 +1014,6 @@ def main():
 
         # Render Metrics
         if 'duration_s' in nearest_shelter:
-            import math
             mins = math.ceil(nearest_shelter['duration_s'] / 60)
             mode = "Walking" if user_settings['travel_mode'] == 'foot-walking' else "Driving"
             
