@@ -260,48 +260,7 @@ class RoutingClient:
 
 
 
-class OSMClient:
-    OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 
-    def get_nearby_shelters(self, lat, lon, radius=1000):
-        # Find shelters near the user (default 1000m radius).
-        overpass_query = f"""
-        [out:json];
-        (
-          node["amenity"="shelter"](around:{radius},{lat},{lon});
-          way["amenity"="shelter"](around:{radius},{lat},{lon});
-          relation["amenity"="shelter"](around:{radius},{lat},{lon});
-          node["location"="underground"](around:{radius},{lat},{lon});
-        );
-        out center;
-        """
-        try:
-            response = requests.get(self.OVERPASS_URL, params={'data': overpass_query})
-            response.raise_for_status()
-            data = response.json()
-            return self._parse_osm_data(data)
-        except requests.RequestException as e:
-            st.error(f"Error fetching shelters: {e}")
-            return []
-
-    def _parse_osm_data(self, data):
-        # Convert the raw OpenStreetMap JSON into a nice list of dictionaries.
-        shelters = []
-        for element in data.get('elements', []):
-            lat = element.get('lat') or element.get('center', {}).get('lat')
-            lon = element.get('lon') or element.get('center', {}).get('lon')
-
-            if lat and lon:
-                shelters.append({
-                    "id": element.get('id'),
-                    "type": element.get('tags', {}).get('amenity', 'unknown'),
-                    "name": element.get('tags', {}).get('name', 'Unnamed Shelter'),
-                    "access": element.get('tags', {}).get('access', 'public'),
-                    "lat": lat,
-                    "lon": lon,
-                    "tags": element.get('tags', {})
-                })
-        return shelters
 
 
 
@@ -465,42 +424,6 @@ class DataProcessor:
             df = df[df['type'] == shelter_type]
 
         return df
-
-
-class Storage:
-    def __init__(self, data_dir="data"):
-        self.data_dir = data_dir
-        self.ratings_file = os.path.join(self.data_dir, "ratings.json")
-        os.makedirs(self.data_dir, exist_ok=True)
-
-        if not os.path.exists(self.ratings_file):
-            self._save_ratings([])
-
-    def _load_ratings(self):
-        try:
-            with open(self.ratings_file, 'r') as f:
-                return json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            return []
-
-    def _save_ratings(self, ratings):
-        with open(self.ratings_file, 'w') as f:
-            json.dump(ratings, f, indent=2)
-
-    def add_rating(self, shelter_id, rating, comment=""):
-        ratings = self._load_ratings()
-        ratings.append({
-            "shelter_id": shelter_id,
-            "rating": rating,
-            "comment": comment
-        })
-        self._save_ratings(ratings)
-
-    def get_ratings_df(self):
-        ratings = self._load_ratings()
-        if not ratings:
-            return pd.DataFrame(columns=["shelter_id", "rating", "comment"])
-        return pd.DataFrame(ratings)
 
 
 
@@ -851,48 +774,6 @@ class SafetyModel:
         # Guess how long until things get dangerous (minutes).
         # Random prediction for demo purposes
         return random.randint(5, 30)
-
-class ReliabilityModel:
-    def calculate_reliability(self, ratings_df, shelter_id):
-        # Figure out if a shelter is reliable based on user votes.
-        # We use a math trick (Bayesian average) so one bad vote doesn't ruin a new shelter.
-        if ratings_df.empty:
-            return 5.0  # Default neutral score
-
-        shelter_ratings = ratings_df[ratings_df['shelter_id'] == shelter_id]
-
-        if shelter_ratings.empty:
-            return 5.0
-
-        # Bayesian Average
-        # C = global average rating
-        # m = minimum votes required to be listed (smoothing factor)
-        C = ratings_df['rating'].mean()
-        m = 2
-
-        v = len(shelter_ratings)
-        R = shelter_ratings['rating'].mean()
-
-        weighted_rating = (v / (v + m)) * R + (m / (v + m)) * C
-        return round(weighted_rating, 2)
-
-    def analyze_sentiment(self, comment):
-        # Determine if a comment is positive or negative.
-        positive_keywords = ['safe', 'clean', 'good', 'spacious', 'accessible']
-        negative_keywords = ['dirty', 'crowded', 'closed', 'locked', 'unsafe']
-
-        score = 0
-        lower_comment = comment.lower()
-
-        for word in positive_keywords:
-            if word in lower_comment:
-                score += 1
-
-        for word in negative_keywords:
-            if word in lower_comment:
-                score -= 1
-
-        return score
 
 # ==========================================
 # UI Components
