@@ -522,10 +522,11 @@ ALL_UKRAINE_REGION_UIDS = [
 
 
 @st.cache_data(ttl=3600)
-def load_historical_alerts_for_ml() -> pd.DataFrame:
+def load_historical_alerts_for_ml() -> (pd.DataFrame, list):
     # 1. Fetch Data
     headers = {"Authorization": f"Bearer {ALERTS_API_TOKEN}"}
     all_alerts = []
+    error_log = []
     region_uids = ALL_UKRAINE_REGION_UIDS
 
     for uid in region_uids:
@@ -545,12 +546,13 @@ def load_historical_alerts_for_ml() -> pd.DataFrame:
                         "day_of_week": started_at.dayofweek,
                         "hour": started_at.hour
                     })
+            else:
+                error_log.append(f"Failed to fetch data for region {uid}: {response.status_code}")
         except Exception as e:
-            # Just print to console to keep UI clean
-            print(f"Error fetching region {uid}: {e}")
+            error_log.append(f"Error fetching region {uid}: {e}")
 
     if not all_alerts:
-        return pd.DataFrame()
+        return pd.DataFrame(), error_log
 
     df = pd.DataFrame(all_alerts)
 
@@ -569,7 +571,6 @@ def load_historical_alerts_for_ml() -> pd.DataFrame:
                 "timestamp": dt,
                 "region": region,
                 "month": dt.month,
-                "day": dt.day,          
                 "day_of_week": dt.dayofweek,
                 "hour": dt.hour
             })
@@ -585,7 +586,7 @@ def load_historical_alerts_for_ml() -> pd.DataFrame:
 
     grid_df['alert_occurrence'] = grid_df.apply(is_active, axis=1)
 
-    return grid_df
+    return grid_df, error_log
     # Feature engineering
     df["month"] = df["timestamp"].dt.month
     df["day"] = df["timestamp"].dt.day
@@ -706,12 +707,12 @@ def load_historical_alerts_for_ml() -> pd.DataFrame:
 
 @st.cache_resource(show_spinner=True)
 
-def train_attack_risk_model(alerts_df: pd.DataFrame):
+def train_alert_risk_model(alerts_df: pd.DataFrame):
     # Teach the model to guess if an alert is coming based on the date and time.
     if alerts_df.empty or "alert_occurrence" not in alerts_df.columns:
         raise ValueError("Input DataFrame is empty or missing required columns.")
 
-    feature_cols = ["month", "day", "hour", "region_encoded"]
+    feature_cols = ["month", "day_of_week", "hour", "region_encoded"]
     
     # Encode region
     le = LabelEncoder()
@@ -748,12 +749,12 @@ def train_attack_risk_model(alerts_df: pd.DataFrame):
 
 
 
-def predict_attack_probability(model, le, region: str, month: int, day: int, hour: int) -> float:
-    # Ask the trained model how likely an attack is right now for a specific region.
+def predict_alert_probability(model, le, region: str, month: int, day_of_week: int, hour: int) -> float:
+    # Ask the trained model how likely an alert is right now for a specific region.
     if not (1 <= month <= 12):
         raise ValueError("Month must be between 1 and 12")
-    if not (1 <= day <= 31):
-        raise ValueError("Day must be between 1 and 31")
+    if not (0 <= day_of_week <= 6):
+        raise ValueError("Day of Week must be between 0 (Mon) and 6 (Sun)")
     if not (0 <= hour <= 23):
         raise ValueError("Hour must be between 0 and 23")
 
@@ -768,15 +769,21 @@ def predict_attack_probability(model, le, region: str, month: int, day: int, hou
         # Fallback if region was not seen during training
         return 0.0
 
-    X_new = np.array([[month, day, hour, region_encoded]], dtype=float)
+    X_new = np.array([[month, day_of_week, hour, region_encoded]], dtype=float)
     return model.predict_proba(X_new)[0, 1]
 
 def render_risk_prediction_tab():
-    st.header("Air Alert Attack Risk Model")
+    st.header("Air Alert Risk Model")
 
     # 1) Load data
     with st.spinner("Loading historical alerts..."):
-        alerts_df = load_historical_alerts_for_ml()
+        alerts_df, errors = load_historical_alerts_for_ml()
+
+    # Show errors only if clicked
+    if errors:
+        with st.expander("View Data Loading Errors"):
+            for err in errors:
+                st.error(err)
 
     if alerts_df.empty:
         st.error("No alert data loaded. Cannot train model.")
@@ -784,8 +791,8 @@ def render_risk_prediction_tab():
         st.success(f"Loaded {len(alerts_df)} rows of alert data.")
 
         # 2) Train model
-        with st.spinner("Training attack risk model (Region-Aware)..."):
-            model, roc_auc, le = train_attack_risk_model(alerts_df)
+        with st.spinner("Training alert risk model (Region-Aware)..."):
+            model, roc_auc, le = train_alert_risk_model(alerts_df)
 
         if model is None:
             st.warning("Model could not be trained (only one class present).")
@@ -793,7 +800,7 @@ def render_risk_prediction_tab():
             st.write(f"Model ROC AUC: {roc_auc:.3f}")
 
             # 3) User inputs for prediction
-            st.subheader("Predict attack probability")
+            st.subheader("Predict alert probability")
 
             # Get unique regions for dropdown, sorted
             available_regions = sorted(alerts_df["region"].unique().tolist())
@@ -806,12 +813,20 @@ def render_risk_prediction_tab():
             with col_a:
                 month = st.number_input("Month (1–12)", min_value=1, max_value=12, value=1)
             with col_b:
-                day = st.number_input("Day (1-31)", min_value=1, max_value=31, value=1)
+                # User wants "Day of Week" (Mon, Tue...) in UI? 
+                # "Switch 'Day of Month' (e.g., 1st, 2nd, 3rd) back to 'Day of Week' (Mon, Tue, Wed, etc)"
+                # I should probably map names to 0-6 integers.
+                days_map = {
+                    "Monday": 0, "Tuesday": 1, "Wednesday": 2, "Thursday": 3, 
+                    "Friday": 4, "Saturday": 5, "Sunday": 6
+                }
+                day_name = st.selectbox("Day of Week", list(days_map.keys()))
+                day_of_week = days_map[day_name]
             with col_c:
                 hour = st.number_input("Hour (0–23)", min_value=0, max_value=23, value=12)
 
             if st.button("Predict"):
-                prob = predict_attack_probability(model, le, selected_region, month, day, hour)
+                prob = predict_alert_probability(model, le, selected_region, month, day_of_week, hour)
                 st.metric(f"Risk for {selected_region}", f"{prob:.1%}")
 
 class SafetyModel:
