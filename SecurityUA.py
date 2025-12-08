@@ -2,12 +2,10 @@ import streamlit as st
 import requests
 import random
 import time
-from datetime import datetime
 import openrouteservice
 import pandas as pd
 from geopy.distance import geodesic
 import json
-import os
 import numpy as np
 import folium
 from streamlit_folium import st_folium
@@ -16,7 +14,7 @@ from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import LabelEncoder
 from geopy.geocoders import Nominatim
-from geopy.extra.rate_limiter import RateLimiter
+
 
 ##### shelters
 @st.cache_data
