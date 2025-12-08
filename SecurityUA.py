@@ -149,6 +149,23 @@ def build_alerts_dataframe(alerts_json: dict) -> pd.DataFrame:
 
     df = pd.DataFrame(alerts_list)
 
+
+# Real-Time Alert State Check for User-Selected Region
+def is_region_under_air_raid(alerts_data: dict, region_name: str) -> bool:
+    """
+    Returns True if there is an active air_raid alert in the given region.
+    """
+    alerts = alerts_data.get("alerts", [])
+    for a in alerts:
+        if (
+            a.get("location_title") == region_name
+            and a.get("alert_type") == "air_raid"
+            and a.get("finished_at") is None
+        ):
+            return True
+    return False
+
+
     # Choose and reorder columns if they exist
     preferred_columns = [
         "id",
