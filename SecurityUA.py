@@ -542,7 +542,6 @@ def load_historical_alerts_for_ml() -> (pd.DataFrame, list):
                     all_alerts.append({
                         "timestamp": started_at,
                         "region": reg,
-                        "month": started_at.month,
                         "day_of_week": started_at.dayofweek,
                         "hour": started_at.hour
                     })
@@ -570,7 +569,6 @@ def load_historical_alerts_for_ml() -> (pd.DataFrame, list):
             grid_data.append({
                 "timestamp": dt,
                 "region": region,
-                "month": dt.month,
                 "day_of_week": dt.dayofweek,
                 "hour": dt.hour
             })
@@ -579,10 +577,10 @@ def load_historical_alerts_for_ml() -> (pd.DataFrame, list):
 
     # 3. Calculate "alert_occurrence"
     # Identify which slots in the grid actually had an alert
-    active_slots = set(zip(df['month'], df['day_of_week'], df['hour'], df['region']))
+    active_slots = set(zip(df['day_of_week'], df['hour'], df['region']))
 
     def is_active(row):
-        return 1 if (row['month'], row['day_of_week'], row['hour'], row['region']) in active_slots else 0
+        return 1 if (row['day_of_week'], row['hour'], row['region']) in active_slots else 0
 
     grid_df['alert_occurrence'] = grid_df.apply(is_active, axis=1)
 
@@ -712,7 +710,7 @@ def train_alert_risk_model(alerts_df: pd.DataFrame):
     if alerts_df.empty or "alert_occurrence" not in alerts_df.columns:
         raise ValueError("Input DataFrame is empty or missing required columns.")
 
-    feature_cols = ["month", "day_of_week", "hour", "region_encoded"]
+    feature_cols = ["day_of_week", "hour", "region_encoded"]
     
     # Encode region
     le = LabelEncoder()
@@ -749,10 +747,8 @@ def train_alert_risk_model(alerts_df: pd.DataFrame):
 
 
 
-def predict_alert_probability(model, le, region: str, month: int, day_of_week: int, hour: int) -> float:
+def predict_alert_probability(model, le, region: str, day_of_week: int, hour: int) -> float:
     # Ask the trained model how likely an alert is right now for a specific region.
-    if not (1 <= month <= 12):
-        raise ValueError("Month must be between 1 and 12")
     if not (0 <= day_of_week <= 6):
         raise ValueError("Day of Week must be between 0 (Mon) and 6 (Sun)")
     if not (0 <= hour <= 23):
@@ -769,7 +765,7 @@ def predict_alert_probability(model, le, region: str, month: int, day_of_week: i
         # Fallback if region was not seen during training
         return 0.0
 
-    X_new = np.array([[month, day_of_week, hour, region_encoded]], dtype=float)
+    X_new = np.array([[day_of_week, hour, region_encoded]], dtype=float)
     return model.predict_proba(X_new)[0, 1]
 
 def render_risk_prediction_tab():
@@ -812,10 +808,8 @@ def render_risk_prediction_tab():
             # Input explanation
             st.markdown("Select a region and a time to estimate the likelihood of an air alert based on historical patterns.")
 
-            col_a, col_b, col_c = st.columns(3)
+            col_a, col_b = st.columns(2)
             with col_a:
-                month = st.number_input("Month (1–12)", min_value=1, max_value=12, value=1)
-            with col_b:
                 # User wants "Day of Week" (Mon, Tue...) in UI? 
                 # "Switch 'Day of Month' (e.g., 1st, 2nd, 3rd) back to 'Day of Week' (Mon, Tue, Wed, etc)"
                 # I should probably map names to 0-6 integers.
@@ -825,11 +819,11 @@ def render_risk_prediction_tab():
                 }
                 day_name = st.selectbox("Day of Week", list(days_map.keys()))
                 day_of_week = days_map[day_name]
-            with col_c:
+            with col_b:
                 hour = st.number_input("Hour (0–23)", min_value=0, max_value=23, value=12)
 
             if st.button("Predict"):
-                prob = predict_alert_probability(model, le, selected_region, month, day_of_week, hour)
+                prob = predict_alert_probability(model, le, selected_region, day_of_week, hour)
                 st.metric(f"Risk for {selected_region}", f"{prob:.1%}")
                 # Output explanation
                 st.caption(f"This percentage ({prob:.1%}) represents the model's estimated probability of an alert occurring in {selected_region} at this specific time.")
