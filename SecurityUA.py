@@ -21,7 +21,8 @@ from geopy.extra.rate_limiter import RateLimiter
 ##### shelters
 @st.cache_data
 def load_data():
-    # Load 'shelters.json' (filtering out unsuitable ones) and 'metro.json' (adding metro stations).
+    # Helper to load our shelter data.
+    # We grab 'shelters.json' (filtering out the bad ones) and 'metro.json' (adding metro stations).
     combined_shelters = []
     
     # Part 1: Load the big shelters file.
@@ -33,10 +34,12 @@ def load_data():
                     props = feature.get('properties', {})
                     geom = feature.get('geometry', {})
                     
+                    # Skip if it has no coordinates (need lat/lon to plot it!)
                     if not geom or 'coordinates' not in geom: 
                         continue
                     
-                    # We list types to exclude, like open bus stops or nature shelters.
+                    # We listed types we definitely DON'T want.
+                    # e.g. bus stops (glass breaks!) or picnic spots (too open).
                     bad_data = [
                         # Transport (Glass danger)
                         "public_transport", "taxi", "bus_stop", "platform",
@@ -45,7 +48,7 @@ def load_data():
                         "picnic_shelter", "gazebo", "lean_to", "weather_shelter", 
                         "rock_shelter", "sun_shelter", "pergola",
                         
-                        # Objects/Animals
+                        # Random stuff that isn't a shelter
                         "bicycle_parking", "bicycle_rental", "field_shelter", 
                         "bench", "atm", "waste_disposal", "smoking_shelter"
                     ]
@@ -54,6 +57,7 @@ def load_data():
                     amenity = props.get('amenity', 'unknown')
                     
                     # THE BOUNCER CHECK:
+                    # If the shelter type is on our "bad list", we kick it out.
                     if s_type in bad_data or amenity in bad_data:
                         continue # SKIP IT!
                         
@@ -64,7 +68,7 @@ def load_data():
                         "lon": geom['coordinates'][0]
                     })
     except Exception as e:
-        # If file is missing, just print a small warning to the logs, don't crash
+        # If the file is missing, just print a small warning so we know.
         print(f"Warning: shelters.json error: {e}")
 
     # --- PART 2: Load the Metro File (metro.json) ---
@@ -83,7 +87,7 @@ def load_data():
                         "lon": geom['coordinates'][0]
                     })
     except Exception as e:
-        # It is okay if metro.json is missing
+        # It's okay if metro.json is missing, we just won't have metro stations.
         pass 
 
     return pd.DataFrame(combined_shelters)
@@ -96,16 +100,15 @@ def load_data():
 
 class AlertsClient:
     # A simple client to talk to the Alerts API.
-    # Note: We're keeping the API token right here in the code.
-    # It's not usually safe, but it's okay for this specific project.
+    # Note: We're keeping the API token right here. 
+    # Ideally use environment variables, but this is easier for now.
 
     # Base URL of the Alerts API
     BASE_URL = "https://api.alerts.in.ua/v1"
 
     def __init__(self):
         # ------------------------------------------------------------------
-        # THIS IS WHERE YOU PUT YOUR REAL API TOKEN
-        # Paste your real working token between the quotes below:
+        # API TOKEN HERE
         # ------------------------------------------------------------------
         self.api_key = "3b9da58a53b958cab81355b22e3feb9c10593dc4ab2203"
         # ------------------------------------------------------------------
@@ -116,32 +119,30 @@ class AlertsClient:
             raise ValueError("API token not set in AlertsClient")
 
     def get_active_alerts(self) -> dict:
-        # Get the currently active alerts from the API.
+        # Fetch whatever alerts are happening right now.
         
-        # We need to send the token in the headers.
-
-        # The API requires the token in the Authorization header
+        # We need to send the token in the headers so the API knows it's us.
         headers = {
             "Authorization": f"Bearer {self.api_key}"
         }
 
-        # Send a GET request to the /alerts/active.json endpoint
+        # Send a GET request to the endpoint
         response = requests.get(
             f"{self.BASE_URL}/alerts/active.json",
             headers=headers,
             timeout=10,  # seconds
         )
 
-        # Raise an error if the response status is not 2xx
+        # Ensure the request worked (status 200 OK)
         response.raise_for_status()
 
-        # Convert the response body to JSON and return it
+        # Helper method .json() turns the text response into a python dictionary
         return response.json()
 
 
 
 def build_alerts_dataframe(alerts_json: dict) -> pd.DataFrame:
-    # Turn the API answer into a pandas DataFrame so we can show it easily.
+    # Turn the API answer into a pandas DataFrame so we can show it easily in a table.
     alerts_list = alerts_json.get("alerts", [])
 
     if not alerts_list:
@@ -149,7 +150,7 @@ def build_alerts_dataframe(alerts_json: dict) -> pd.DataFrame:
 
     df = pd.DataFrame(alerts_list)
 
-    # Choose and reorder columns if they exist
+    # Pick the columns we care about and order them nicely
     preferred_columns = [
         "id",
         "location_title",
@@ -162,7 +163,7 @@ def build_alerts_dataframe(alerts_json: dict) -> pd.DataFrame:
     existing_columns = [c for c in preferred_columns if c in df.columns]
     df = df[existing_columns]
 
-    # Convert timestamps to nicer datetime format if they exist
+    # Convert strings to actual date objects so they sort correctly
     for col in ["started_at", "finished_at"]:
         if col in df.columns:
             df[col] = pd.to_datetime(df[col], errors="coerce")
@@ -200,19 +201,19 @@ class RoutingClient:
             self.client = None
 
     def find_quickest_shelter(self, user_lon, user_lat, candidates_df, profile='foot-walking'):
-        # Pick the top 5 shelters and ask the Matrix API which one is actually fastest to reach.
+        # Here we take the top shelters and ask the Matrix API: which one is actually fastest to walk to?
         if not self.client or candidates_df.empty:
-            # Fallback: If API is down, just return the first one (closest by straight line)
+            # Fallback: If API is down or invalid, just assume the closest one straight-line is best.
             return candidates_df.iloc[0] 
 
-        # Prepare coords list: [User, Shelter1, Shelter2, Shelter3, Shelter4, Shelter5]
+        # Prepare coords list for API: [User, Shelter1, Shelter2, ...]
         # Note: ORS requires [Longitude, Latitude]
         locations = [[user_lon, user_lat]]
         for _, row in candidates_df.iterrows():
             locations.append([row['lon'], row['lat']])
 
         try:
-            # Ask Matrix: "How long from Index 0 (User) to everyone else?"
+            # Ask Matrix: How long from Index 0 (User) to everyone else?
             matrix = self.client.distance_matrix(
                 locations=locations,
                 profile=profile,
@@ -220,15 +221,15 @@ class RoutingClient:
                 sources=[0]
             )
 
-            # The API returns a list of times: [0, time_to_shelter1, time_to_shelter2...]
-            # We skip index 0 (User->User)
+            # The API returns a list of seconds: [0, time_to_shelter1, time_to_shelter2...]
+            # We skip index 0 since that's just User->User (0 seconds)
             durations = matrix['durations'][0][1:]
             
-            # Add these times to a copy of the dataframe
+            # Add these times to our dataframe so we can sort by them
             candidates_df = candidates_df.copy()
             candidates_df['duration_s'] = durations
             
-            # Sort by TIME (duration_s), so the fastest one is at the top
+            # Sort by TIME (duration_s), so the fastest journey is at the top
             best_shelter = candidates_df.sort_values('duration_s').iloc[0]
             return best_shelter
 
@@ -237,7 +238,7 @@ class RoutingClient:
             return candidates_df.iloc[0] 
 
     def get_route(self, start_coords, end_coords, profile='foot-walking'):
-        # Get the actual path (turn-by-turn) to show on the map.
+        # Get the actual line (turn-by-turn) to show on the map.
         if not self.client:
             return self._get_mock_route(start_coords, end_coords)
         try:
@@ -250,15 +251,11 @@ class RoutingClient:
             return self._get_mock_route(start_coords, end_coords)
 
     def _get_mock_route(self, start, end):
-        # Fallback straight line if internet fails
+        # Just draw a straight line if internet fails so the map isn't empty.
         return {
             "type": "FeatureCollection", 
             "features": [{"type": "Feature", "geometry": {"type": "LineString", "coordinates": [start, end]}}]
         }
-
-
-
-
 
 
 
@@ -333,16 +330,16 @@ class DataProcessor:
 
         df = pd.DataFrame(shelters_data)
 
-        # Calculate distance for each shelter
+        # Use geopy to calculate distance (meters) for each shelter row
         df['distance_m'] = df.apply(
             lambda row: geodesic((user_lat, user_lon), (row['lat'], row['lon'])).meters,
             axis=1
         )
 
-        # Classify and Score
+        # Add more info (scores) to each row
         df = df.apply(self._enrich_shelter_data, axis=1)
 
-        # Sort by distance
+        # Sort the list so closest ones are first
         df = df.sort_values('distance_m')
 
         return df
@@ -387,8 +384,8 @@ class DataProcessor:
         return "Improvised / Expedient Shelters"
 
     def _generate_scores(self, shelter_type, tags):
-        # Make up some scores (1-10) based on the type we found.
-        # Base scores by type (heuristic)
+        # Create some scores (1-10) based on the shelter type.
+        # This is a bit made-up (heuristic), but gives us something to show on the UI.
         base_scores = {
             "Basement / Sub-grade Civilian Shelters": 5,
             "Purpose-Built Public Blast Shelters": 8,
@@ -401,11 +398,11 @@ class DataProcessor:
 
         base = base_scores.get(shelter_type, 5)
 
-        # Add some randomness and tag-based adjustments for demo
+        # Add some randomness to simulate real-world variance for the demo
         scores = {
             "Protection Score": min(10, max(1, base + random.randint(-1, 1))),
             "Infrastructure Score": min(10, max(1, base + random.randint(-2, 2))),
-            "Accessibility Score": random.randint(3, 10),  # Highly variable
+            "Accessibility Score": random.randint(3, 10),  # This varies a lot
             "Capacity Score": random.randint(4, 9),
             "Reliability Score": min(10, max(1, base + random.randint(-1, 2)))
         }
@@ -447,6 +444,7 @@ ALL_UKRAINE_REGION_UIDS = [
 @st.cache_data(ttl=3600)
 def load_historical_alerts_for_ml() -> (pd.DataFrame, list):
     # 1. Fetch Data
+    # We grab the last 30 days of alert data for all Ukrainian regions.
     headers = {"Authorization": f"Bearer {ALERTS_API_TOKEN}"}
     all_alerts = []
     error_log = []
@@ -479,7 +477,9 @@ def load_historical_alerts_for_ml() -> (pd.DataFrame, list):
     df = pd.DataFrame(all_alerts)
 
     # 2. Create Time Grid (Generate 0s and 1s)
-    # We need to create 'safe' (0) hours to train the model properly
+    # The API only gives us "When did an alert happen?" (Positives).
+    # But to train a model, we also need to know "When did NOTHING happen?" (Negatives or 0s).
+    # so we create a big grid of every hour for the last month and fill in the blanks.
     end_date = pd.Timestamp.now(tz='UTC').floor('H')
     start_date = end_date - pd.Timedelta(days=30)
     date_range = pd.date_range(start=start_date, end=end_date, freq='H')
@@ -499,7 +499,7 @@ def load_historical_alerts_for_ml() -> (pd.DataFrame, list):
     grid_df = pd.DataFrame(grid_data)
 
     # 3. Calculate "alert_occurrence"
-    # Identify which slots in the grid actually had an alert
+    # Identify which slots in our empty grid actually correspond to a real alert.
     active_slots = set(zip(df['day_of_week'], df['hour'], df['region']))
 
     def is_active(row):
@@ -629,23 +629,23 @@ def load_historical_alerts_for_ml() -> (pd.DataFrame, list):
 @st.cache_resource(show_spinner=True)
 
 def train_alert_risk_model(alerts_df: pd.DataFrame):
-    # Teach the model to guess if an alert is coming based on the date and time.
+    # This is where we teach the model!
+    # It tries to find patterns in the Date/Time to guess if an alert is coming.
     if alerts_df.empty or "alert_occurrence" not in alerts_df.columns:
         raise ValueError("Input DataFrame is empty or missing required columns.")
 
     feature_cols = ["day_of_week", "hour", "region_encoded"]
     
-    # Encode region
+    # We need to turn string regions "Kyiv" into numbers "1" for the math to work.
     le = LabelEncoder()
     alerts_df["region_encoded"] = le.fit_transform(alerts_df["region"])
     
-    X = alerts_df[feature_cols].values
-    y = alerts_df["alert_occurrence"].values
+    X = alerts_df[feature_cols].values       # The Inputs
+    y = alerts_df["alert_occurrence"].values # The Output (Target)
 
-    # Check if we have both classes
+    # Sanity Check: Do we have both 'Normal' days (0) and 'Alert' days (1)?
     if len(np.unique(y)) < 2:
-        # Fallback if only one class (e.g. only 0s or only 1s)
-        # This can happen if data is sparse or API fails to give alerts
+        # If we only have 1s (Constant War) or 0s (Peace), the model can't learn anything.
         st.warning("Not enough data diversity to train model (only one class present).")
         return None, float("nan"), None
 
@@ -680,12 +680,12 @@ def predict_alert_probability(model, le, region: str, day_of_week: int, hour: in
     if model is None or le is None:
         return 0.0
 
-    # Encode the region
+    # We need to turn the region name (str) into the number ID (int) the model knows
     try:
-        # Note: le.transform expects a list-like input
+        # Note: le.transform expects a list, so we wrap it in []
         region_encoded = le.transform([region])[0]
     except ValueError:
-        # Fallback if region was not seen during training
+        # If the model has never seen this region, it can't guess. Safe fallback.
         return 0.0
 
     X_new = np.array([[day_of_week, hour, region_encoded]], dtype=float)
@@ -757,8 +757,8 @@ class SafetyModel:
         pass
 
     def predict_safety_score(self, distance_m, is_alert_active, protection_score=5):
-        # Guess how safe you are (0-100) based on distance and shelter quality.
-        # Simple heuristic: closer & better-protected shelters are safer
+        # A simple formula to guess how safe you are (0-100).
+        # We start with 100 and subtract points for distance and bad shelter quality.
         base_score = 100 - (distance_m / 50)  # lose 1 point every 50 m
 
         # Bonus for good protection
@@ -782,7 +782,7 @@ class SafetyModel:
 class MapComponent:
     def render(self, user_lat, user_lon, shelters_df, route_geojson=None):
         # Draw the map with the user, the shelters, and the path (if we have one).
-        # We return the map so we can tell where the user clicked.
+        # We return the map so we receive click events (so we know where the user clicked).
         # Create base map
         m = folium.Map(location=[user_lat, user_lon], zoom_start=14)
 
