@@ -107,11 +107,7 @@ class AlertsClient:
     BASE_URL = "https://api.alerts.in.ua/v1"
 
     def __init__(self):
-        # ------------------------------------------------------------------
-        # API TOKEN HERE
-        # ------------------------------------------------------------------
         self.api_key = "3b9da58a53b958cab81355b22e3feb9c10593dc4ab2203"
-        # ------------------------------------------------------------------
 
         # Safety check: if token is missing, stop the app with an error
         if not self.api_key or self.api_key.strip() == "":
@@ -189,11 +185,7 @@ def is_region_under_air_raid(alerts_data: dict, region_name: str) -> bool:
 
 class RoutingClient:
     def __init__(self, api_key="eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6Ijg2ZjI2ODQ1Y2JhMzQ1YTJhNmU3MDgwNDM0NjI4NGY5IiwiaCI6Im11cm11cjY0In0="):
-        # ---------------------------------------------------------
-        # PASTE YOUR KEY FROM SCREENSHOT 1 BELOW
-        # Replace "YOUR_LONG_KEY_HERE" with the real "ey..." string
-        # ---------------------------------------------------------
-        self.api_key = api_key if api_key else "YOUR_LONG_KEY_HERE"
+        self.api_key = api_key
         
         if self.api_key:
             self.client = openrouteservice.Client(key=self.api_key)
@@ -633,10 +625,6 @@ def render_risk_prediction_tab():
                 st.caption(f"This percentage ({prob:.1%}) represents the model's estimated probability of an alert occurring in {selected_region} at this specific time.")
 
 class SafetyModel:
-    def __init__(self):
-        # Placeholder for a real model – you can later plug in ML here if you want
-        pass
-
     def predict_safety_score(self, distance_m, is_alert_active, protection_score=5):
         # A simple formula to guess how safe you are (0-100).
         # We start with 100 and subtract points for distance and bad shelter quality.
