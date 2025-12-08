@@ -12,6 +12,7 @@ The purpose of the project is to demonstrate:
 
 This application is a prototype for academic use and not intended for real-world emergency decisions.
 
+
     
 Main Features
 
@@ -21,7 +22,7 @@ Main Features
 	•	User can choose a region to watch
 	•	Toast notification + optional alarm when that region goes under air raid alert
 
-2. Interactive Shelter Map
+3. Interactive Shelter Map
 	•	Loads shelters from shelters.json and metro stations from metro.json
 	•	Filters out unsuitable POIs (e.g., bus stops, gazebos, picnic shelters)
 	•	Displays shelters with type, distance, and heuristic quality scores
@@ -31,18 +32,19 @@ Main Features
 	•	Manual coordinates
 	•	Clicking on the map
 
-3. Routing to Nearest Shelter
+4. Routing to Nearest Shelter
 	•	Uses OpenRouteService to compute:
 	•	Fastest reachable shelter (Matrix API)
 	•	Walking or driving route displayed on the map
 	•	Fallback: draws a straight line if the API fails
 
-4. Machine Learning – Alert Risk Prediction
+5. Machine Learning – Alert Risk Prediction
 	•	Downloads ~30 days of historical alerts for all Ukrainian regions
 	•	Builds an hourly time grid and labels alert occurrences
 	•	Trains a Gradient Boosting classifier using: Day of week, Hour of day, Region
 	•	Displays ROC AUC score
 	•	Allows probability prediction for any region + selected time
+
 
 
 Project Structure
@@ -56,30 +58,33 @@ Project Structure
 	•	Risk Prediction Tab – ML training and user prediction interface
 
 
+
 Installation & Setup
 
 Requirements
 Install dependencies using an existing requirements.txt or:
 pip install streamlit requests pandas numpy geopy folium streamlit-folium scikit-learn openrouteservice
 
+
 Data Files (must be in project folder)
 	•	shelters.json
 	•	metro.json
-
 Both contain GeoJSON-style features with coordinates.
+
 
 API Keys
 The application requires:
 	•	Alerts API token (alerts.in.ua)
 	•	OpenRouteService routing API key
 
-These can be hardcoded for the project or set as environment variables:
-
+These are hardcoded for the project or can be set as environment variables:
 export ALERTS_API_TOKEN="your_token"
 export ORS_API_KEY="your_key"
 
+
 Run the Application:
 streamlit run SecurityUA.py
+
 
 
 Limitations
@@ -87,6 +92,7 @@ Limitations
 	•	ML model uses very limited features; predictions are rough
 	•	Geocoding and routing depend on external API availability
 	•	Not suitable for real-life emergency use
+
 
 
 Learning Objectives Demonstrated
