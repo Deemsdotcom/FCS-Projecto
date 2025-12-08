@@ -1138,7 +1138,9 @@ def main():
     tab1, tab2 = st.tabs(["Monitor", "Risk Prediction"])
 
     with tab1:
-    # Alerts
+        # Alerts
+            # Alerts
+        # Alerts
     try:
         alerts_data = alerts_client.get_active_alerts()
     except:
@@ -1161,9 +1163,8 @@ def main():
             # Existing table of active alerts
             with st.expander("🚨 Active Alerts", expanded=False):
                 st.dataframe(df_alerts, use_container_width=True)
-    
-    
-    # --- Notification logic for watched region ---
+
+            # --- Notification logic for watched region ---
     # Remember previous state across reruns
     if "last_region_alert_active" not in st.session_state:
         st.session_state.last_region_alert_active = False
@@ -1190,6 +1191,8 @@ def main():
     # Update state for next rerun
     st.session_state.last_region_alert_active = region_alert_active
     # --- End notification logic ---
+
+    
 
         # Map Settings
         user_settings = sidebar.render()
