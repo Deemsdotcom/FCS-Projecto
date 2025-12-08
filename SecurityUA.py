@@ -809,6 +809,9 @@ def render_risk_prediction_tab():
             with col1:
                 selected_region = st.selectbox("Region", available_regions)
             
+            # Input explanation
+            st.markdown("Select a region and a time to estimate the likelihood of an air alert based on historical patterns.")
+
             col_a, col_b, col_c = st.columns(3)
             with col_a:
                 month = st.number_input("Month (1–12)", min_value=1, max_value=12, value=1)
@@ -828,6 +831,8 @@ def render_risk_prediction_tab():
             if st.button("Predict"):
                 prob = predict_alert_probability(model, le, selected_region, month, day_of_week, hour)
                 st.metric(f"Risk for {selected_region}", f"{prob:.1%}")
+                # Output explanation
+                st.caption(f"This percentage ({prob:.1%}) represents the model's estimated probability of an alert occurring in {selected_region} at this specific time.")
 
 class SafetyModel:
     def __init__(self):
