@@ -1138,17 +1138,58 @@ def main():
     tab1, tab2 = st.tabs(["Monitor", "Risk Prediction"])
 
     with tab1:
-        # Alerts
-        try:
-            alerts_data = alerts_client.get_active_alerts()
-        except:
-            alerts_data = {}
+    # Alerts
+    try:
+        alerts_data = alerts_client.get_active_alerts()
+    except:
+        alerts_data = {}
 
-        if alerts_data:
-            df_alerts = build_alerts_dataframe(alerts_data)
-            if not df_alerts.empty:
-                with st.expander("🚨 Active Alerts", expanded=False):
-                    st.dataframe(df_alerts, use_container_width=True)
+    watched_region = None  # ⬅️ we'll store the user's chosen region here
+
+    if alerts_data:
+        df_alerts = build_alerts_dataframe(alerts_data)
+        if not df_alerts.empty:
+            # Sidebar selectbox: which region should trigger notifications?
+            region_names = sorted(df_alerts["location_title"].dropna().unique())
+            if region_names:
+                watched_region = st.sidebar.selectbox(
+                    "🔔 Notify me about alerts in:",
+                    options=region_names,
+                    index=region_names.index("Kyiv Oblast") if "Kyiv Oblast" in region_names else 0
+                )
+
+            # Existing table of active alerts
+            with st.expander("🚨 Active Alerts", expanded=False):
+                st.dataframe(df_alerts, use_container_width=True)
+    
+    
+    # --- Notification logic for watched region ---
+    # Remember previous state across reruns
+    if "last_region_alert_active" not in st.session_state:
+        st.session_state.last_region_alert_active = False
+
+    region_alert_active = False
+    if alerts_data and watched_region:
+        region_alert_active = is_region_under_air_raid(alerts_data, watched_region)
+
+    # Fire notification only when state changes: False -> True
+    if region_alert_active and not st.session_state.last_region_alert_active:
+        # Visual toast in the app
+        st.toast(f"🚨 NEW AIR ALERT in {watched_region}!", icon="⚠️")
+
+        # Optional: small alarm sound (tab must be opened/allowed to play audio)
+        st.markdown(
+            """
+            <audio autoplay>
+                <source src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" type="audio/ogg">
+            </audio>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    # Update state for next rerun
+    st.session_state.last_region_alert_active = region_alert_active
+    # --- End notification logic ---
 
         # Map Settings
         user_settings = sidebar.render()
