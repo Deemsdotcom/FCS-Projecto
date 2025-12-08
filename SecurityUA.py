@@ -797,7 +797,7 @@ def render_risk_prediction_tab():
         if model is None:
             st.warning("Model could not be trained (only one class present).")
         else:
-            st.write(f"Model ROC AUC: {roc_auc:.3f}")
+            st.write(f"Model ROC AUC: {roc_auc:.3f} (prediction quality)")
 
             # 3) User inputs for prediction
             st.subheader("Predict alert probability")
