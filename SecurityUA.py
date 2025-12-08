@@ -14,6 +14,7 @@ from streamlit_folium import st_folium
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import roc_auc_score
+from sklearn.preprocessing import LabelEncoder
 from geopy.geocoders import Nominatim
 from geopy.extra.rate_limiter import RateLimiter
 
@@ -505,66 +506,41 @@ ALL_UKRAINE_REGION_UIDS = [
 
 @st.cache_data(ttl=3600)
 def load_historical_alerts_for_ml() -> pd.DataFrame:
-    # 1. Fetch Data
+    # Get the last month of alert history from the API to teach our model.
+    # We look at all regions.
     headers = {"Authorization": f"Bearer {ALERTS_API_TOKEN}"}
     all_alerts = []
+
+    # Use static list instead of broken API endpoint
     region_uids = ALL_UKRAINE_REGION_UIDS
 
     for uid in region_uids:
         try:
             url = f"{ALERTS_API_BASE_URL}/regions/{uid}/alerts/month_ago.json"
             response = requests.get(url, headers=headers, timeout=10)
-            if response.status_code == 200:
-                data = response.json()
-                alerts = data.get("alerts", [])
-                for alert in alerts:
-                    started_at = pd.to_datetime(alert["started_at"])
-                    reg = alert.get("location_title") or alert.get("location_oblast")
-                    all_alerts.append({
-                        "timestamp": started_at,
-                        "region": reg,
-                        "month": started_at.month,
-                        "day_of_week": started_at.dayofweek,
-                        "hour": started_at.hour
-                    })
+
+            if response.status_code != 200:
+                st.warning(f"Failed to fetch data for region {uid}: {response.status_code}")
+                continue
+
+            data = response.json()
+            alerts = data.get("alerts", [])
+
+            for alert in alerts:
+                started_at = pd.to_datetime(alert["started_at"])
+                all_alerts.append({
+                    "timestamp": started_at,
+                    "region": alert.get("location_title") or alert.get("location_oblast"),
+                    "alert_active": 1,
+                })
+
         except Exception as e:
-            print(f"Error fetching region {uid}: {e}")
+            st.error(f"Error fetching data for region {uid}: {e}")
 
     if not all_alerts:
         return pd.DataFrame()
 
     df = pd.DataFrame(all_alerts)
-
-    # 2. Create Time Grid (Generate 0s and 1s)
-    end_date = pd.Timestamp.now(tz='UTC').floor('H')
-    start_date = end_date - pd.Timedelta(days=30)
-    date_range = pd.date_range(start=start_date, end=end_date, freq='H')
-
-    grid_data = []
-    regions = df['region'].unique()
-
-    for region in regions:
-        for dt in date_range:
-            grid_data.append({
-                "timestamp": dt,
-                "region": region,
-                "month": dt.month,
-                "day": dt.day,          # Needed for prediction
-                "day_of_week": dt.dayofweek,
-                "hour": dt.hour
-            })
-
-    grid_df = pd.DataFrame(grid_data)
-
-    # 3. Calculate "alert_occurrence"
-    active_slots = set(zip(df['month'], df['day_of_week'], df['hour'], df['region']))
-
-    def is_active(row):
-        return 1 if (row['month'], row['day_of_week'], row['hour'], row['region']) in active_slots else 0
-
-    grid_df['alert_occurrence'] = grid_df.apply(is_active, axis=1)
-
-    return grid_df
 
     # Feature engineering
     df["month"] = df["timestamp"].dt.month
@@ -691,7 +667,12 @@ def train_attack_risk_model(alerts_df: pd.DataFrame):
     if alerts_df.empty or "alert_occurrence" not in alerts_df.columns:
         raise ValueError("Input DataFrame is empty or missing required columns.")
 
-    feature_cols = ["month", "day", "hour"]
+    feature_cols = ["month", "day", "hour", "region_encoded"]
+    
+    # Encode region
+    le = LabelEncoder()
+    alerts_df["region_encoded"] = le.fit_transform(alerts_df["region"])
+    
     X = alerts_df[feature_cols].values
     y = alerts_df["alert_occurrence"].values
 
@@ -700,7 +681,7 @@ def train_attack_risk_model(alerts_df: pd.DataFrame):
         # Fallback if only one class (e.g. only 0s or only 1s)
         # This can happen if data is sparse or API fails to give alerts
         st.warning("Not enough data diversity to train model (only one class present).")
-        return None, float("nan")
+        return None, float("nan"), None
 
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42, stratify=y
@@ -719,12 +700,12 @@ def train_attack_risk_model(alerts_df: pd.DataFrame):
         y_proba = model.predict_proba(X_test)[:, 1]
         roc_auc = roc_auc_score(y_test, y_proba)
 
-    return model, roc_auc
+    return model, roc_auc, le
 
 
 
-def predict_attack_probability(model, month: int, day: int, hour: int) -> float:
-    # Ask the trained model how likely an attack is right now.
+def predict_attack_probability(model, le, region: str, month: int, day: int, hour: int) -> float:
+    # Ask the trained model how likely an attack is right now for a specific region.
     if not (1 <= month <= 12):
         raise ValueError("Month must be between 1 and 12")
     if not (1 <= day <= 31):
@@ -732,10 +713,18 @@ def predict_attack_probability(model, month: int, day: int, hour: int) -> float:
     if not (0 <= hour <= 23):
         raise ValueError("Hour must be between 0 and 23")
 
-    if model is None:
+    if model is None or le is None:
         return 0.0
 
-    X_new = np.array([[month, day, hour]], dtype=float)
+    # Encode the region
+    try:
+        # Note: le.transform expects a list-like input
+        region_encoded = le.transform([region])[0]
+    except ValueError:
+        # Fallback if region was not seen during training
+        return 0.0
+
+    X_new = np.array([[month, day, hour, region_encoded]], dtype=float)
     return model.predict_proba(X_new)[0, 1]
 
 def render_risk_prediction_tab():
@@ -751,8 +740,8 @@ def render_risk_prediction_tab():
         st.success(f"Loaded {len(alerts_df)} rows of alert data.")
 
         # 2) Train model
-        with st.spinner("Training attack risk model..."):
-            model, roc_auc = train_attack_risk_model(alerts_df)
+        with st.spinner("Training attack risk model (Region-Aware)..."):
+            model, roc_auc, le = train_attack_risk_model(alerts_df)
 
         if model is None:
             st.warning("Model could not be trained (only one class present).")
@@ -762,17 +751,24 @@ def render_risk_prediction_tab():
             # 3) User inputs for prediction
             st.subheader("Predict attack probability")
 
-            col1, col2, col3 = st.columns(3)
+            # Get unique regions for dropdown, sorted
+            available_regions = sorted(alerts_df["region"].unique().tolist())
+
+            col1, col2 = st.columns(2)
             with col1:
+                selected_region = st.selectbox("Region", available_regions)
+            
+            col_a, col_b, col_c = st.columns(3)
+            with col_a:
                 month = st.number_input("Month (1–12)", min_value=1, max_value=12, value=1)
-            with col2:
+            with col_b:
                 day = st.number_input("Day (1-31)", min_value=1, max_value=31, value=1)
-            with col3:
+            with col_c:
                 hour = st.number_input("Hour (0–23)", min_value=0, max_value=23, value=12)
 
             if st.button("Predict"):
-                prob = predict_attack_probability(model, month, day, hour)
-                st.metric("Predicted attack probability", f"{prob:.1%}")
+                prob = predict_attack_probability(model, le, selected_region, month, day, hour)
+                st.metric(f"Risk for {selected_region}", f"{prob:.1%}")
 
 class SafetyModel:
     def __init__(self):
@@ -846,10 +842,12 @@ class ReliabilityModel:
 
 class MapComponent:
     def render(self, user_lat, user_lon, shelters_df, route_geojson=None):
-        # 1. Create base map
+        # Draw the map with the user, the shelters, and the path (if we have one).
+        # We return the map so we can tell where the user clicked.
+        # Create base map
         m = folium.Map(location=[user_lat, user_lon], zoom_start=14)
 
-        # 2. Add User Marker
+        # User Marker
         folium.Marker(
             [user_lat, user_lon],
             popup="You are here",
@@ -857,9 +855,8 @@ class MapComponent:
             icon=folium.Icon(color="blue", icon="user")
         ).add_to(m)
 
-        # 3. Add Shelters
+        # Shelters
         if not shelters_df.empty:
-            # Color helper
             def get_color(type_name):
                 colors = {
                     "Basement / Sub-grade Civilian Shelters": "orange",
@@ -874,22 +871,25 @@ class MapComponent:
 
             for _, row in shelters_df.iterrows():
                 color = get_color(row['type'])
+
                 popup_html = f"""
                 <b>{row['name']}</b><br>
                 Type: {row['type']}<br>
-                Protection: {row.get('Protection Score', 'N/A')}/10
+                Protection: {row.get('Protection Score', 'N/A')}/10<br>
+                Reliability: {row.get('Reliability Score', 'N/A')}/10
                 """
+
                 folium.CircleMarker(
                     location=[row['lat'], row['lon']],
                     radius=8,
                     popup=folium.Popup(popup_html, max_width=300),
-                    tooltip=f"{row['name']}",
+                    tooltip=f"{row['name']} ({row['type']})",
                     color=color,
                     fill=True,
                     fill_color=color
                 ).add_to(m)
 
-        # 4. Add Route (if exists)
+        # Route
         if route_geojson:
             folium.GeoJson(
                 route_geojson,
@@ -897,7 +897,8 @@ class MapComponent:
                 style_function=lambda x: {'color': 'red', 'weight': 5, 'opacity': 0.7}
             ).add_to(m)
 
-        # 5. RENDER - This must be the ONLY place 'st_folium' is called
+        # Return the map object to be rendered by st_folium
+        # We want to capture clicks on the map
         return st_folium(m, width=None, height=500, returned_objects=["last_clicked"])
 
 
