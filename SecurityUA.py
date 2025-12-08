@@ -505,41 +505,66 @@ ALL_UKRAINE_REGION_UIDS = [
 
 @st.cache_data(ttl=3600)
 def load_historical_alerts_for_ml() -> pd.DataFrame:
-    # Get the last month of alert history from the API to teach our model.
-    # We look at all regions.
+    # 1. Fetch Data
     headers = {"Authorization": f"Bearer {ALERTS_API_TOKEN}"}
     all_alerts = []
-
-    # Use static list instead of broken API endpoint
     region_uids = ALL_UKRAINE_REGION_UIDS
 
     for uid in region_uids:
         try:
             url = f"{ALERTS_API_BASE_URL}/regions/{uid}/alerts/month_ago.json"
             response = requests.get(url, headers=headers, timeout=10)
-
-            if response.status_code != 200:
-                st.warning(f"Failed to fetch data for region {uid}: {response.status_code}")
-                continue
-
-            data = response.json()
-            alerts = data.get("alerts", [])
-
-            for alert in alerts:
-                started_at = pd.to_datetime(alert["started_at"])
-                all_alerts.append({
-                    "timestamp": started_at,
-                    "region": alert.get("location_title") or alert.get("location_oblast"),
-                    "alert_active": 1,
-                })
-
+            if response.status_code == 200:
+                data = response.json()
+                alerts = data.get("alerts", [])
+                for alert in alerts:
+                    started_at = pd.to_datetime(alert["started_at"])
+                    reg = alert.get("location_title") or alert.get("location_oblast")
+                    all_alerts.append({
+                        "timestamp": started_at,
+                        "region": reg,
+                        "month": started_at.month,
+                        "day_of_week": started_at.dayofweek,
+                        "hour": started_at.hour
+                    })
         except Exception as e:
-            st.error(f"Error fetching data for region {uid}: {e}")
+            print(f"Error fetching region {uid}: {e}")
 
     if not all_alerts:
         return pd.DataFrame()
 
     df = pd.DataFrame(all_alerts)
+
+    # 2. Create Time Grid (Generate 0s and 1s)
+    end_date = pd.Timestamp.now(tz='UTC').floor('H')
+    start_date = end_date - pd.Timedelta(days=30)
+    date_range = pd.date_range(start=start_date, end=end_date, freq='H')
+
+    grid_data = []
+    regions = df['region'].unique()
+
+    for region in regions:
+        for dt in date_range:
+            grid_data.append({
+                "timestamp": dt,
+                "region": region,
+                "month": dt.month,
+                "day": dt.day,          # Needed for prediction
+                "day_of_week": dt.dayofweek,
+                "hour": dt.hour
+            })
+
+    grid_df = pd.DataFrame(grid_data)
+
+    # 3. Calculate "alert_occurrence"
+    active_slots = set(zip(df['month'], df['day_of_week'], df['hour'], df['region']))
+
+    def is_active(row):
+        return 1 if (row['month'], row['day_of_week'], row['hour'], row['region']) in active_slots else 0
+
+    grid_df['alert_occurrence'] = grid_df.apply(is_active, axis=1)
+
+    return grid_df
 
     # Feature engineering
     df["month"] = df["timestamp"].dt.month
@@ -821,12 +846,10 @@ class ReliabilityModel:
 
 class MapComponent:
     def render(self, user_lat, user_lon, shelters_df, route_geojson=None):
-        # Draw the map with the user, the shelters, and the path (if we have one).
-        # We return the map so we can tell where the user clicked.
-        # Create base map
+        # 1. Create base map
         m = folium.Map(location=[user_lat, user_lon], zoom_start=14)
 
-        # User Marker
+        # 2. Add User Marker
         folium.Marker(
             [user_lat, user_lon],
             popup="You are here",
@@ -834,8 +857,9 @@ class MapComponent:
             icon=folium.Icon(color="blue", icon="user")
         ).add_to(m)
 
-        # Shelters
+        # 3. Add Shelters
         if not shelters_df.empty:
+            # Color helper
             def get_color(type_name):
                 colors = {
                     "Basement / Sub-grade Civilian Shelters": "orange",
@@ -850,25 +874,22 @@ class MapComponent:
 
             for _, row in shelters_df.iterrows():
                 color = get_color(row['type'])
-
                 popup_html = f"""
                 <b>{row['name']}</b><br>
                 Type: {row['type']}<br>
-                Protection: {row.get('Protection Score', 'N/A')}/10<br>
-                Reliability: {row.get('Reliability Score', 'N/A')}/10
+                Protection: {row.get('Protection Score', 'N/A')}/10
                 """
-
                 folium.CircleMarker(
                     location=[row['lat'], row['lon']],
                     radius=8,
                     popup=folium.Popup(popup_html, max_width=300),
-                    tooltip=f"{row['name']} ({row['type']})",
+                    tooltip=f"{row['name']}",
                     color=color,
                     fill=True,
                     fill_color=color
                 ).add_to(m)
 
-        # Route
+        # 4. Add Route (if exists)
         if route_geojson:
             folium.GeoJson(
                 route_geojson,
@@ -876,8 +897,7 @@ class MapComponent:
                 style_function=lambda x: {'color': 'red', 'weight': 5, 'opacity': 0.7}
             ).add_to(m)
 
-        # Return the map object to be rendered by st_folium
-        # We want to capture clicks on the map
+        # 5. RENDER - This must be the ONLY place 'st_folium' is called
         return st_folium(m, width=None, height=500, returned_objects=["last_clicked"])
 
 
