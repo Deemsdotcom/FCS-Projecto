@@ -258,9 +258,6 @@ class RoutingClient:
         }
 
 
-
-
-
 class NominatimClient:
     BASE_URL = "https://nominatim.openstreetmap.org"
     USER_AGENT = "SafeShelterUkraine/1.0"
@@ -421,8 +418,6 @@ class DataProcessor:
             df = df[df['type'] == shelter_type]
 
         return df
-
-
 
 
 
@@ -596,7 +591,7 @@ def render_risk_prediction_tab():
         st.success(f"Loaded {len(alerts_df)} rows of alert data.")
 
         # 2) Train model
-        with st.spinner("Training alert risk model (Region-Aware)..."):
+        with st.spinner("Training alert risk model..."):
             model, roc_auc, le = train_alert_risk_model(alerts_df)
 
         if model is None:
