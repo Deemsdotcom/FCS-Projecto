@@ -3,8 +3,8 @@ requests
 openrouteservice
 pandas
 geopy
-scikit-learn
-pydeck
+numpy
 folium
 streamlit-folium
-numpy
+scikit-learn
+pydeck
