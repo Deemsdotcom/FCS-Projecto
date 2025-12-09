@@ -49,6 +49,37 @@ UKRAINE_CITIES = {
     "Uzhhorod": {"lat": 48.6208, "lon": 22.2879}
 }
 
+# Mapping from English city names (UI) to Ukrainian region names (API)
+# Based on typical API response 'location_title'
+CITY_TO_API_MAPPING = {
+    "Kyiv": "м. Київ",
+    "Kharkiv": "м. Харків",
+    "Dnipro": "м. Дніпро",
+    "Odesa": "Одеський район", # Proxy if city not separate
+    "Donetsk": "Донецький район", 
+    "Zaporizhzhia": "м. Запоріжжя",
+    "Lviv": "Львівський район",
+    "Kryvyi Rih": "м. Кривий Ріг",
+    "Mykolaiv": "Миколаївський район",
+    "Mariupol": "Маріупольський район",
+    "Luhansk": "Луганська область",
+    "Vinnytsia": "Вінницький район",
+    "Simferopol": "Автономна Республіка Крим",
+    "Chernihiv": "Чернігівський район",
+    "Kherson": "Херсонський район",
+    "Poltava": "Полтавський район",
+    "Khmelnytskyi": "Хмельницький район",
+    "Cherkasy": "Черкаський район",
+    "Chernivtsi": "Чернівецький район",
+    "Zhytomyr": "Житомирський район",
+    "Sumy": "Сумський район",
+    "Rivne": "Рівненський район",
+    "Ivano-Frankivsk": "Івано-Франківський район",
+    "Ternopil": "Тернопільський район",
+    "Lutsk": "Луцький район",
+    "Uzhhorod": "Ужгородський район"
+}
+
 ##### shelters
 @st.cache_data
 def load_data():
@@ -618,14 +649,23 @@ def predict_alert_probability(model, le, region: str, day_of_week: int) -> float
         raise ValueError("Day of Week must be between 0 (Mon) and 6 (Sun)")
 
     if model is None or le is None:
+        # Debugging: Model not trained
+        print("DEBUG: Model or LabelEncoder is None") 
+        return 0.0
+
+    # Get the API-compatible region name
+    region_api_name = CITY_TO_API_MAPPING.get(region)
+    if not region_api_name:
+        print(f"DEBUG: No mapping found for region '{region}'")
         return 0.0
 
     # We need to turn the region name (str) into the number ID (int) the model knows
     try:
         # Note: le.transform expects a list, so we wrap it in []
-        region_encoded = le.transform([region])[0]
-    except ValueError:
+        region_encoded = le.transform([region_api_name])[0]
+    except ValueError as e:
         # If the model has never seen this region, it can't guess. Safe fallback.
+        print(f"DEBUG: Region '{region_api_name}' ({region}) not in training data")
         return 0.0
 
     X_new = np.array([[day_of_week, region_encoded]], dtype=float)
