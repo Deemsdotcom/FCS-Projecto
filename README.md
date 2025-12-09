@@ -102,3 +102,83 @@ Learning Objectives Demonstrated
 	•	Training & evaluating a classification model (ROC AUC)
 	•	Building a multi-tab interactive UI in Streamlit
 	•	Combining ML, mapping, and real-time data into one application
+
+
+
+
+
+
+
+
+
+V2:
+
+# SecurityUA
+
+**SecurityUA** is a comprehensive Streamlit dashboard designed to help users in Ukraine stay safe during air raids. It combines real-time air alert monitoring, shelter locating, and machine-learning-based risk prediction into a single, easy-to-use interface.
+
+## Features
+
+### 1. Live Air Alert Monitor
+- **Real-time Data**: Fetches active air raid alerts from the official `alerts.in.ua` API.
+- **Location Status**: Automatically detects if your selected region is under alert.
+- **Active Alerts Table**: View a detailed list of all currently active alerts across Ukraine.
+
+### 2. Smart Shelter Map
+- **Nearest Shelter**: Locates the closest bomb shelters and metro stations relative to your position.
+- **Routing**: Calculates the quickest walking or driving route using OpenRouteService.
+- **Shelter Ratings**: Provides heuristic "safety scores" for shelters based on type (e.g., bunker vs. basement), capacity, and estimated reliability.
+- **Safety Score**: Calculates a dynamic safety score (0-100) for your current situation based on distance to shelter, shelter quality, and active alert status.
+
+### 3. AI Attack Risk Prediction
+- **Risk Model**: Uses a Gradient Boosting Machine Learning model to predict the probability of an air alert for a specific city and day of the week.
+- **Historical Analysis**: Trains on the last 30 days of alert data to identify patterns.
+- **Daily Granularity**: Analyzes risk based on specific dates to provide realistic probability estimates.
+
+## Prerequisites
+
+- Python 3.8+
+- An internet connection (for APIs and map tiles).
+
+## Installation
+
+1.  **Clone or download** this repository.
+2.  **Install the required Python packages**:
+
+    ```bash
+    pip install streamlit requests pandas numpy folium streamlit-folium geopy openrouteservice scikit-learn
+    ```
+
+3.  **Data Files**: Ensure the following JSON files are in the same directory (used for shelter locations):
+    -   `shelters.json`
+    -   `metro.json`
+
+## Usage
+
+Run the application using Streamlit:
+
+```bash
+streamlit run SecurityUA.py
+```
+
+The app will open in your default web browser (usually at `http://localhost:8501`).
+
+## Configuration
+
+**API Keys**:
+The application currently uses hardcoded API keys for demonstration purposes:
+-   **Alerts API**: `alerts.in.ua`
+-   **Routing API**: `OpenRouteService`
+
+*Note: For a production environment, it is recommended to move these keys to environment variables or Streamlit secrets.*
+
+## Project Structure
+
+-   `SecurityUA.py`: Main application code containing all logic for UI, data processing, and ML training.
+-   `shelters.json`: Database of shelter locations.
+-   `metro.json`: Database of metro station locations.
+
+## License
+
+This project is for educational and humanitarian purposes. Please feel free to use and improve it.
+
