@@ -1013,40 +1013,39 @@ def main():
     # TAB 1: LIVE MONITORING
     # =======================
     with tab1:
-    # --- User Location & Map Settings (Sidebar) ---
+        # --- User Location & Map Settings (Sidebar) ---
         user_settings = sidebar.render()
         user_lat = user_settings['lat']
         user_lon = user_settings['lon']
 
-    # --- Alerts + Region Notification ---
-    try:
-        alerts_data = alerts_client.get_active_alerts()
-    except Exception:
-        alerts_data = {}
+        # --- Alerts + Region Notification ---
+        try:
+            alerts_data = alerts_client.get_active_alerts()
+        except Exception:
+            alerts_data = {}
 
-    watched_region = None  # inferred from user location
+        watched_region = None  # inferred from user location
 
-    if alerts_data:
-        df_alerts = build_alerts_dataframe(alerts_data)
-        if not df_alerts.empty:
-            region_names = sorted(df_alerts["location_title"].dropna().unique())
-            if region_names:
-            # 🔄 Automatically sync notification region to user location
-                watched_region = infer_region_from_coords(
-                    user_lat,
-                    user_lon,
-                    region_names,
-                    geolocator
-            )
+        if alerts_data:
+            df_alerts = build_alerts_dataframe(alerts_data)
+            if not df_alerts.empty:
+                region_names = sorted(df_alerts["location_title"].dropna().unique())
+                if region_names:
+                    # 🔄 Automatically sync notification region to user location
+                    watched_region = infer_region_from_coords(
+                        user_lat,
+                        user_lon,
+                        region_names,
+                        geolocator
+                    )
 
-            # Optional: show which region is being used (read-only, no selectbox)
-            st.sidebar.markdown("### 🔔 Notifications")
-            st.sidebar.info(f"Notifications tied to: **{watched_region}**")
+                    # Optional: show which region is being used (read-only, no selectbox)
+                    st.sidebar.markdown("### 🔔 Notifications")
+                    st.sidebar.info(f"Notifications tied to: **{watched_region}**")
 
-        # Existing table of active alerts
-        with st.expander("🚨 Active Alerts", expanded=False):
-            st.dataframe(df_alerts, use_container_width=True)
-
+                # Existing table of active alerts
+                with st.expander("🚨 Active Alerts", expanded=False):
+                    st.dataframe(df_alerts, use_container_width=True)
 
         # --- Real-Time Region-Specific Alert Notifications (UI toast + optional alarm) ---
         if "last_region_alert_active" not in st.session_state:
@@ -1075,10 +1074,7 @@ def main():
         st.session_state.last_region_alert_active = region_alert_active
 
         # --- Map & Shelter Logic ---
-        user_settings = sidebar.render()
-        user_lat = user_settings['lat']
-        user_lon = user_settings['lon']
-
+        # ⚠️ DO NOT call sidebar.render() again here – reuse user_settings / user_lat / user_lon
         st.markdown("### 🗺️ Live Shelter Map")
 
         # Load Data
@@ -1199,3 +1195,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
