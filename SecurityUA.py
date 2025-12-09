@@ -49,6 +49,38 @@ UKRAINE_CITIES = {
     "Uzhhorod": {"lat": 48.6208, "lon": 22.2879}
 }
 
+# Map city names to alert API region names
+# The alert API returns region names like "Kyiv City", "Kharkivska oblast", etc.
+# This helps the ML model correctly identify regions when making predictions
+CITY_TO_REGION_MAP = {
+    "Kyiv": "Kyiv City",
+    "Kharkiv": "Kharkivska oblast",
+    "Odesa": "Odeska oblast",
+    "Dnipro": "Dnipropetrovska oblast",
+    "Donetsk": "Donetska oblast",
+    "Zaporizhzhia": "Zaporizka oblast",
+    "Lviv": "Lvivska oblast",
+    "Kryvyi Rih": "Dnipropetrovska oblast",  # Kryvyi Rih is in Dnipro region
+    "Mykolaiv": "Mykolaivska oblast",
+    "Mariupol": "Donetska oblast",  # Mariupol is in Donetsk region
+    "Luhansk": "Luhanska oblast",
+    "Vinnytsia": "Vinnytska oblast",
+    "Simferopol": "Avtonomna Respublika Krym",  # Crimea
+    "Chernihiv": "Chernihivska oblast",
+    "Kherson": "Khersonska oblast",
+    "Poltava": "Poltavska oblast",
+    "Khmelnytskyi": "Khmelnytska oblast",
+    "Cherkasy": "Cherkaska oblast",
+    "Chernivtsi": "Chernivetska oblast",
+    "Zhytomyr": "Zhytomyrska oblast",
+    "Sumy": "Sumska oblast",
+    "Rivne": "Rivnenska oblast",
+    "Ivano-Frankivsk": "Ivano-Frankivska oblast",
+    "Ternopil": "Ternopilska oblast",
+    "Lutsk": "Volynska oblast",  # Lutsk is in Volyn region
+    "Uzhhorod": "Zakarpatska oblast"
+}
+
 ##### shelters
 @st.cache_data
 def load_data():
@@ -762,39 +794,53 @@ def render_risk_prediction_tab():
                 if start_minutes >= end_minutes:
                     st.error("⚠️ End time must be after start time!")
                 else:
-                    # Calculate probability for each minute in the range
-                    probabilities = []
-                    current_minutes = start_minutes
+                    # Convert city name to region name for the model
+                    # The model was trained on alert API region names, not city names
+                    region_name = CITY_TO_REGION_MAP.get(selected_city, selected_city)
                     
-                    with st.spinner(f"Calculating probabilities for {end_minutes - start_minutes + 1} minutes..."):
-                        while current_minutes <= end_minutes:
-                            hour = current_minutes // 60
-                            minute = current_minutes % 60
-                            prob = predict_alert_probability(model, le, selected_city, day_of_week, hour, minute)
-                            probabilities.append(prob)
-                            current_minutes += 1
+                    # Check if the region is in the model's training data
+                    try:
+                        # Test if the region is known to the model
+                        test_encoded = le.transform([region_name])
+                        region_known = True
+                    except ValueError:
+                        region_known = False
+                        st.warning(f"⚠️ Region '{region_name}' not found in training data. Available regions: {', '.join(le.classes_)}")
                     
-                    # Calculate average probability
-                    avg_prob = sum(probabilities) / len(probabilities)
-                    max_prob = max(probabilities)
-                    min_prob = min(probabilities)
-                    
-                    # Display results
-                    st.metric(f"Average Risk for {selected_city}", f"{avg_prob:.1%}")
-                    
-                    # Additional statistics
-                    col1, col2, col3 = st.columns(3)
-                    with col1:
-                        st.metric("Minimum Risk", f"{min_prob:.1%}")
-                    with col2:
-                        st.metric("Maximum Risk", f"{max_prob:.1%}")
-                    with col3:
-                        st.metric("Minutes Analyzed", len(probabilities))
-                    
-                    # Output explanation with time range display
-                    start_str = f"{start_time.hour:02d}:{start_time.minute:02d}"
-                    end_str = f"{end_time.hour:02d}:{end_time.minute:02d}"
-                    st.caption(f"This shows the alert probability for {selected_city} on {day_name} between **{start_str}** and **{end_str}**. The model analyzed {len(probabilities)} individual minutes in this timespan.")
+                    if region_known:
+                        # Calculate probability for each minute in the range
+                        probabilities = []
+                        current_minutes = start_minutes
+                        
+                        with st.spinner(f"Calculating probabilities for {end_minutes - start_minutes + 1} minutes..."):
+                            while current_minutes <= end_minutes:
+                                hour = current_minutes // 60
+                                minute = current_minutes % 60
+                                prob = predict_alert_probability(model, le, region_name, day_of_week, hour, minute)
+                                probabilities.append(prob)
+                                current_minutes += 1
+                        
+                        # Calculate average probability
+                        avg_prob = sum(probabilities) / len(probabilities)
+                        max_prob = max(probabilities)
+                        min_prob = min(probabilities)
+                        
+                        # Display results
+                        st.metric(f"Average Risk for {selected_city}", f"{avg_prob:.1%}")
+                        
+                        # Additional statistics
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric("Minimum Risk", f"{min_prob:.1%}")
+                        with col2:
+                            st.metric("Maximum Risk", f"{max_prob:.1%}")
+                        with col3:
+                            st.metric("Minutes Analyzed", len(probabilities))
+                        
+                        # Output explanation with time range display
+                        start_str = f"{start_time.hour:02d}:{start_time.minute:02d}"
+                        end_str = f"{end_time.hour:02d}:{end_time.minute:02d}"
+                        st.caption(f"This shows the alert probability for {selected_city} ({region_name}) on {day_name} between **{start_str}** and **{end_str}**. The model analyzed {len(probabilities)} individual minutes in this timespan.")
 
 class SafetyModel:
     def predict_safety_score(self, distance_m, is_alert_active, protection_score=5):
