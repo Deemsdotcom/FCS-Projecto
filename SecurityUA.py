@@ -1035,6 +1035,19 @@ def main():
         except Exception:
             alerts_data = {}
 
+
+         # Show detailed alerts list
+        with st.expander("📋 View All Active Alerts"):
+            if alerts_data:
+                df_alerts = build_alerts_dataframe(alerts_data)
+                if not df_alerts.empty:
+                    st.dataframe(df_alerts, use_container_width=True)
+                else:
+                    st.info("No active alerts currently.")
+            else:
+                st.info("No active alerts data available.")
+                
+
         # --- Determine alert region from user's current location ---
         watched_region = None
 
