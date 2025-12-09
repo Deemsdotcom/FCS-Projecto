@@ -50,7 +50,7 @@ UKRAINE_CITIES = {
 }
 
 # Mapping from English city names (UI) to Ukrainian region names (API)
-# Based on typical API response 'location_title'
+# Based on API response 'location_title'
 CITY_TO_API_MAPPING = {
     "Kyiv": "м. Київ",
     "Kharkiv": "м. Харків",
@@ -80,14 +80,14 @@ CITY_TO_API_MAPPING = {
     "Uzhhorod": "Ужгородський район"
 }
 
-##### shelters
+# SHELTERS
 @st.cache_data
 def load_data():
-    # Helper to load our shelter data.
-    # We grab 'shelters.json' (filtering out the bad ones) and 'metro.json' (adding metro stations).
+    # Helper to load our shelter data
+    # We grab 'shelters.json' (filtering out the bad ones) and 'metro.json' (adding metro stations)
     combined_shelters = []
     
-    # Part 1: Load the big shelters file.
+    # Part 1: Load the big shelters file
     try:
         with open("shelters.json", "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -96,17 +96,16 @@ def load_data():
                     props = feature.get('properties', {})
                     geom = feature.get('geometry', {})
                     
-                    # Skip if it has no coordinates (need lat/lon to plot it!)
+                    # Skip if it has no coordinates (need lat/lon to plot it)
                     if not geom or 'coordinates' not in geom: 
                         continue
                     
-                    # We listed types we definitely DON'T want.
-                    # e.g. bus stops (glass breaks!) or picnic spots (too open).
+                    # we listed types we definitely DON'T want like bus stops (glass breaks!) or picnic spots
                     bad_data = [
                         # Transport (Glass danger)
                         "public_transport", "taxi", "bus_stop", "platform",
                         
-                        # Park/Nature (Open sides, no walls)
+                        # Park/Nature (open/no safety)
                         "picnic_shelter", "gazebo", "lean_to", "weather_shelter", 
                         "rock_shelter", "sun_shelter", "pergola",
                         
@@ -119,7 +118,7 @@ def load_data():
                     amenity = props.get('amenity', 'unknown')
                     
                     # THE BOUNCER CHECK:
-                    # If the shelter type is on our "bad list", we kick it out.
+                    # If the shelter type is on our "bad list" we kick it out.
                     if s_type in bad_data or amenity in bad_data:
                         continue # SKIP IT!
                         
@@ -130,10 +129,10 @@ def load_data():
                         "lon": geom['coordinates'][0]
                     })
     except Exception as e:
-        # If the file is missing, just print a small warning so we know.
+        # If the file is missing, just print a small warning so we know
         st.warning(f"Warning: shelters.json error: {e}")
 
-    # --- PART 2: Load the Metro File (metro.json) ---
+    # PART 2: Load the metro file (metro.json)
     try:
         with open("metro.json", "r", encoding="utf-8") as f:
             metro_data = json.load(f)
@@ -149,23 +148,21 @@ def load_data():
                         "lon": geom['coordinates'][0]
                     })
     except Exception as e:
-        # It's okay if metro.json is missing, we just won't have metro stations.
+        # it is ok if metro.json is missing -> no metro
         pass 
 
     return pd.DataFrame(combined_shelters)
 
    
 
-# ==========================================
-# API Clients
-# ==========================================
+
+# API CLIENTS
 
 class AlertsClient:
     # A simple client to talk to the Alerts API.
-    # Note: We're keeping the API token right here. 
-    # Ideally use environment variables, but this is easier for now.
+    # Note: We're keeping the API token right here, ideally use environment variables, but this is easier
 
-    # Base URL of the Alerts API
+    # base URL of the alerts API
     BASE_URL = "https://api.alerts.in.ua/v1"
 
     def __init__(self):
@@ -177,9 +174,7 @@ class AlertsClient:
             raise ValueError("API token not set in AlertsClient")
 
     def get_active_alerts(self) -> dict:
-        # Fetch whatever alerts are happening right now.
-        
-        # We need to send the token in the headers so the API knows it's us.
+        # Fetch whatever alerts are happening right now & send the token in the headers so the API knows it is us
         headers = {
             "Authorization": f"Bearer {self.api_key}"
         }
@@ -191,12 +186,11 @@ class AlertsClient:
             timeout=10,  # seconds
         )
 
-        # Ensure the request worked (status 200 OK)
+        # ensure the request worked (status 200 OK)
         response.raise_for_status()
 
         # Helper method .json() turns the text response into a python dictionary
         return response.json()
-
 
 
 def build_alerts_dataframe(alerts_json: dict) -> pd.DataFrame:
@@ -208,7 +202,7 @@ def build_alerts_dataframe(alerts_json: dict) -> pd.DataFrame:
 
     df = pd.DataFrame(alerts_list)
 
-    # Pick the columns we care about and order them nicely
+    # pick the columns we need and order them
     preferred_columns = [
         "id",
         "location_title",
@@ -221,7 +215,7 @@ def build_alerts_dataframe(alerts_json: dict) -> pd.DataFrame:
     existing_columns = [c for c in preferred_columns if c in df.columns]
     df = df[existing_columns]
 
-    # Convert strings to actual date objects so they sort correctly
+    # transform str to actual date objects so they sort correctly
     for col in ["started_at", "finished_at"]:
         if col in df.columns:
             df[col] = pd.to_datetime(df[col], errors="coerce")
@@ -229,11 +223,10 @@ def build_alerts_dataframe(alerts_json: dict) -> pd.DataFrame:
     return df
 
 
-# Real-Time Region-Specific Alert Notifications (UI toast + optional alarm)
+# ALERT NOTIFICATIONS
 def is_region_under_air_raid(alerts_data: dict, region_name: str) -> bool:
-    """
-    Returns True if there is an active air_raid alert in the given region.
-    """
+    #returns true if active alert in region
+    
     alerts = alerts_data.get("alerts", [])
     for a in alerts:
         if (
@@ -245,14 +238,9 @@ def is_region_under_air_raid(alerts_data: dict, region_name: str) -> bool:
     return False
 
 def infer_region_from_coords(lat, lon, region_names, geolocator):
-    """
-    Try to infer the alerts region (location_title) from the user's coordinates.
-    Uses Nominatim reverse geocoding, then matches the state/region name against
-    the list of region_names from the alerts API.
-    """
+    #Try to infer the alerts region (location_title) from the user coordinates, Nominatim reverse geocoding, then match state/region name against the list of region_names from the alerts API
     if not region_names:
         return None
-
     try:
         location = geolocator.reverse((lat, lon), language="en")
         if location and hasattr(location, "raw"):
@@ -261,15 +249,14 @@ def infer_region_from_coords(lat, lon, region_names, geolocator):
             state_name = addr.get("state") or addr.get("region") or addr.get("county")
 
             if state_name:
-                # Try direct or fuzzy-ish matching
-                # e.g. "Lviv Oblast" vs "Lvivska oblast" vs "Lviv"
+                # Try direct or fuzzy-ish matching: "Lviv Oblast" vs "Lvivska oblast" vs "Lviv"
                 state_lower = state_name.lower()
                 for r in region_names:
                     r_lower = r.lower()
                     if state_lower in r_lower or r_lower in state_lower:
                         return r
 
-        # Fallback – just pick something (e.g. Kyiv Oblast or first in list)
+        # Fallback, just pick something (e.g. Kyiv Oblast or first in list)
         for candidate in ["Kyiv Oblast", "Kyiv City"]:
             if candidate in region_names:
                 return candidate
@@ -294,19 +281,18 @@ class RoutingClient:
             self.client = None
 
     def find_quickest_shelter(self, user_lon, user_lat, candidates_df, profile='foot-walking'):
-        # Here we take the top shelters and ask the Matrix API: which one is actually fastest to walk to?
+        #we take the top shelters and ask the Matrix API: which one is actually fastest to walk to
         if not self.client or candidates_df.empty:
-            # Fallback: If API is down or invalid, just assume the closest one straight-line is best.
+            # Fallback: if API is down or invalid, just assume the closest straight-line is best
             return candidates_df.iloc[0] 
 
-        # Prepare coords list for API: [User, Shelter1, Shelter2, ...]
-        # Note: ORS requires [Longitude, Latitude]
+        # Prepare coords list for API: [User, Shelter1, Shelter2, ...] (ORS requires [Longitude, Latitude])
         locations = [[user_lon, user_lat]]
         for _, row in candidates_df.iterrows():
             locations.append([row['lon'], row['lat']])
 
         try:
-            # Ask Matrix: How long from Index 0 (User) to everyone else?
+            # ask: How long from index 0 (User) to everyone else
             matrix = self.client.distance_matrix(
                 locations=locations,
                 profile=profile,
@@ -314,15 +300,14 @@ class RoutingClient:
                 sources=[0]
             )
 
-            # The API returns a list of seconds: [0, time_to_shelter1, time_to_shelter2...]
-            # We skip index 0 since that's just User->User (0 seconds)
+            # The API returns a list of seconds: [0, time_to_shelter1, time_to_shelter2...] & we skip index 0 because User->User (0 seconds)
             durations = matrix['durations'][0][1:]
             
             # Add these times to our dataframe so we can sort by them
             candidates_df = candidates_df.copy()
             candidates_df['duration_s'] = durations
             
-            # Sort by TIME (duration_s), so the fastest journey is at the top
+            # Sort by TIME (duration_s), so fastest journey is at top
             best_shelter = candidates_df.sort_values('duration_s').iloc[0]
             return best_shelter
 
@@ -331,7 +316,7 @@ class RoutingClient:
             return candidates_df.iloc[0] 
 
     def get_route(self, start_coords, end_coords, profile='foot-walking'):
-        # Get the actual line (turn-by-turn) to show on the map.
+        # the actual line to show on the map
         if not self.client:
             return self._get_mock_route(start_coords, end_coords)
         try:
@@ -344,7 +329,7 @@ class RoutingClient:
             return self._get_mock_route(start_coords, end_coords)
 
     def _get_mock_route(self, start, end):
-        # Just draw a straight line if internet fails so the map isn't empty.
+        # Just straight line if internet fails so the map isn't empty
         return {
             "type": "FeatureCollection", 
             "features": [{"type": "Feature", "geometry": {"type": "LineString", "coordinates": [start, end]}}]
@@ -353,10 +338,7 @@ class RoutingClient:
 
 
 
-
-# ==========================================
-# Data Processing & Storage
-# ==========================================
+# DATA PROCESSING & STORAGE
 
 class DataProcessor:
     SHELTER_TYPES = [
@@ -370,46 +352,45 @@ class DataProcessor:
     ]
 
     def process_shelters(self, shelters_data, user_lat, user_lon):
-        # Clean up the shelter data, figure out how far away they are, and give them a score.
+        # clean up shelter data, figure out how far away they are & give score
         if not shelters_data:
             return pd.DataFrame()
 
         df = pd.DataFrame(shelters_data)
 
-        # Use geopy to calculate distance (meters) for each shelter row
+        # geopy to calculate distance (meters) for each shelter row
         df['distance_m'] = df.apply(
             lambda row: geodesic((user_lat, user_lon), (row['lat'], row['lon'])).meters,
             axis=1
         )
 
-        # Add more info (scores) to each row
+        # add more scores to each row
         df = df.apply(self._enrich_shelter_data, axis=1)
 
-        # Sort the list so closest ones are first
+        # Sort list from close to far
         df = df.sort_values('distance_m')
 
         return df
 
     def _enrich_shelter_data(self, row):
-        # Figure out the type and score for just one shelter.
+        # find out type & score for one shelter
         tags = row.get('tags', {})
 
         # 1. Classify Type
         row['type'] = self._classify_shelter(tags)
 
-        # 2. Generate Scores (1-10)
+        # 2. Generate Scores from 1 to 10
         scores = self._generate_scores(row['type'], tags)
         for key, value in scores.items():
             row[key] = value
 
-        # Calculate overall score (simple average)
+        # overall score (simple average)
         row['overall_rating'] = sum(scores.values()) / len(scores)
 
         return row
 
     def _classify_shelter(self, tags):
-        # Decide which of the 7 types this shelter is, based on its tags.
-        # Heuristic mapping
+        # decide which of the 7 types this shelter is, based on its tags (Heuristic mapping)
         if tags.get('access') == 'private' or tags.get('military') == 'bunker':
             return "Hardened Military Bunkers"
 
@@ -426,12 +407,11 @@ class DataProcessor:
             if tags.get('building') == 'yes':
                 return "Improvised / Expedient Shelters"
 
-        # Default fallback
+        # default fallback
         return "Improvised / Expedient Shelters"
 
     def _generate_scores(self, shelter_type, tags):
-        # Create some scores (1-10) based on the shelter type.
-        # This is a bit made-up (heuristic), but gives us something to show on the UI.
+        # Create some scores (1-10) based on the shelter type (this is a bit made-up (heuristic) but gives us something to show on the UI 😁)
         base_scores = {
             "Basement / Sub-grade Civilian Shelters": 5,
             "Purpose-Built Public Blast Shelters": 8,
@@ -458,12 +438,9 @@ class DataProcessor:
 
 
 
+# MACHINE LEARNING
 
-# ==========================================
-# Machine Learning
-# ==========================================
-
-# Constants for ML
+# constants for ML
 ALERTS_API_BASE_URL = "https://api.alerts.in.ua/v1"
 ALERTS_API_TOKEN = "3b9da58a53b958cab81355b22e3feb9c10593dc4ab2203"
 # All Ukraine region UIDs (official alerts.in.ua list)
@@ -476,8 +453,7 @@ ALL_UKRAINE_REGION_UIDS = [
 
 @st.cache_data(ttl=3600)
 def load_historical_alerts_for_ml() -> (pd.DataFrame, list):
-    # 1. Fetch Data
-    # We grab the last 30 days of alert data for all Ukrainian regions.
+    # 1. Fetch Data: We grab the last 30 days of alert data for all Ukrainian regions
     headers = {"Authorization": f"Bearer {ALERTS_API_TOKEN}"}
     all_alerts = []
     error_log = []
@@ -508,11 +484,11 @@ def load_historical_alerts_for_ml() -> (pd.DataFrame, list):
 
     df = pd.DataFrame(all_alerts)
 
-    # 2. Build the "Zeroes" (The Days When Nothing Happened)
-    # The API is great at telling us when alerts happened (the "1s"), but it says nothing about the peaceful days (the "0s").
-    # If we only showed the model the alerts, it would think the world is constantly ending! 
-    # So, we have to manually build a grid for each DATE in the last 30 days (filled with 0s)
-    # and then mark which days had alerts. This gives the model a fair picture of reality.
+    # 2. Build the "Zeroes" (days when nothing happened)
+    # The API is great at telling us when alerts happened (1), but it says nothing about the "peaceful" days (0)
+    # If we only showed the model the alerts, it would think the world is constantly "ending"
+    # this is why we have to build a grid for each DATE in the last 30 days (filled with 0s) and then mark which days had alerts. 
+    # this gives model a better picture of reality
     
     # Generate the last 30 days (as dates)
     end_date = datetime.now().date()
@@ -522,7 +498,7 @@ def load_historical_alerts_for_ml() -> (pd.DataFrame, list):
     grid_data = []
     regions = df['region'].unique()
 
-    # Create a row for each combination of region and specific DATE
+    # create a row for each combination of region and specific DATE
     for region in regions:
         for single_date in date_range:
             grid_data.append({
@@ -533,19 +509,18 @@ def load_historical_alerts_for_ml() -> (pd.DataFrame, list):
 
     grid_df = pd.DataFrame(grid_data)
 
-    # 3. Calculate "alert_occurrence"
-    # Match actual alerts to our daily grid
-    # Ensure alerts have a 'date' column for merging
+    # 3. calculate "alert_occurrence"
+    # Match actual alerts to our daily grid & ensure alerts have a 'date' column for merging
     df['date'] = df['timestamp'].dt.date
     
-    # Count how many alerts occurred for each date + region combination
+    # count how many alerts occurred for each date + region combo
     alert_counts = df.groupby(['region', 'date']).size().reset_index(name='alert_count')
     
-    # Merge with the grid
+    # merge with grid
     grid_df = grid_df.merge(alert_counts, on=['region', 'date'], how='left')
     grid_df['alert_count'] = grid_df['alert_count'].fillna(0)
     
-    # Binary: did an alert occur on this specific DATE?
+    # Binary: did alert occur on this specific DATE?
     grid_df['alert_occurrence'] = (grid_df['alert_count'] > 0).astype(int)
 
     return grid_df, error_log
@@ -555,23 +530,23 @@ def load_historical_alerts_for_ml() -> (pd.DataFrame, list):
 @st.cache_resource(show_spinner=True)
 
 def train_alert_risk_model(alerts_df: pd.DataFrame):
-    # This is where we teach the model!
-    # It tries to find patterns in the Date/Time to guess if an alert is coming.
+    # this is where we teach the model 🤖
+    # tries to find patterns in the Date/Time to guess if an alert is coming
     if alerts_df.empty or "alert_occurrence" not in alerts_df.columns:
         raise ValueError("Input DataFrame is empty or missing required columns.")
 
     feature_cols = ["day_of_week", "region_encoded"]
     
-    # We need to turn string regions "Kyiv" into numbers "1" for the math to work.
+    # We need to turn string regions "Kyiv" into numbers "1" for the math to work
     le = LabelEncoder()
     alerts_df["region_encoded"] = le.fit_transform(alerts_df["region"])
     
-    X = alerts_df[feature_cols].values       # The Inputs
-    y = alerts_df["alert_occurrence"].values # The Output (Target)
+    X = alerts_df[feature_cols].values       #Inputs
+    y = alerts_df["alert_occurrence"].values #Output
 
-    # Sanity Check: Do we have both 'Normal' days (0) and 'Alert' days (1)?
+    # Sanity Check: do we have 'Normal' days (0) and 'Alert' days (1)?
     if len(np.unique(y)) < 2:
-        # If we only have 1s (Constant War) or 0s (Peace), the model can't learn anything.
+        # if we only have 1s (Constant War) or only 0s (Peace), the model can't learn
         st.warning("Not enough data diversity to train model (only one class present).")
         return None, float("nan"), None
 
@@ -595,9 +570,8 @@ def train_alert_risk_model(alerts_df: pd.DataFrame):
     return model, roc_auc, le
 
 
-
 def predict_alert_probability(model, le, region: str, day_of_week: int) -> float:
-    # Ask the trained model how likely an alert is for a specific day of week and region.
+    # ask trained model how likely an alert is for a specific day of week and region
     if not (0 <= day_of_week <= 6):
         raise ValueError("Day of Week must be between 0 (Mon) and 6 (Sun)")
 
@@ -612,12 +586,12 @@ def predict_alert_probability(model, le, region: str, day_of_week: int) -> float
         print(f"DEBUG: No mapping found for region '{region}'")
         return 0.0
 
-    # We need to turn the region name (str) into the number ID (int) the model knows
+    #turn the region name (str) into the number ID (int) the model knows
     try:
-        # Note: le.transform expects a list, so we wrap it in []
+        # le.transform expects a list -> wrap it in []
         region_encoded = le.transform([region_api_name])[0]
     except ValueError as e:
-        # If the model has never seen this region, it can't guess. Safe fallback.
+        # if model has never seen this region, it can nott guess => Safe fallback
         print(f"DEBUG: Region '{region_api_name}' ({region}) not in training data")
         return 0.0
 
@@ -631,7 +605,7 @@ def render_risk_prediction_tab():
     with st.spinner("Loading historical alerts..."):
         alerts_df, errors = load_historical_alerts_for_ml()
 
-    # Show errors only if clicked
+    # Show errors if clicked
     if errors:
         with st.expander("View Data Loading Errors"):
             for err in errors:
@@ -642,7 +616,7 @@ def render_risk_prediction_tab():
     else:
         st.success(f"Loaded {len(alerts_df)} rows of alert data.")
 
-        # 2) Train model
+     # 2) Train model
         with st.spinner("Training alert risk model..."):
             model, roc_auc, le = train_alert_risk_model(alerts_df)
 
@@ -654,7 +628,7 @@ def render_risk_prediction_tab():
             # 3) User inputs for prediction
             st.subheader("Predict alert probability")
 
-            # Use same city selection as map sidebar
+            # use same city selection as map sidebar
             sorted_cities = sorted(list(UKRAINE_CITIES.keys()))
             
             col1, col2 = st.columns(2)
@@ -663,9 +637,7 @@ def render_risk_prediction_tab():
             with col2:
                 # Day of Week selector
                 days_map = {
-                    "Monday": 0, "Tuesday": 1, "Wednesday": 2, "Thursday": 3, 
-                    "Friday": 4, "Saturday": 5, "Sunday": 6
-                }
+                    "Monday": 0, "Tuesday": 1, "Wednesday": 2, "Thursday": 3, "Friday": 4, "Saturday": 5, "Sunday": 6}
                 day_name = st.selectbox("Day of Week", list(days_map.keys()))
                 day_of_week = days_map[day_name]
             
@@ -673,10 +645,10 @@ def render_risk_prediction_tab():
             st.markdown("Select a city and day of week to estimate the likelihood of an air alert based on historical patterns.")
 
             if st.button("Predict"):
-                # Calculate probability for the selected day
+                # calculate probability for selected day
                 prob = predict_alert_probability(model, le, selected_city, day_of_week)
                 
-                # Display result
+                # show result
                 st.metric(f"Alert Probability for {selected_city} on {day_name}", f"{prob:.1%}")
                 
                 # Output explanation
@@ -684,8 +656,7 @@ def render_risk_prediction_tab():
 
 class SafetyModel:
     def predict_safety_score(self, distance_m, is_alert_active, protection_score=5):
-        # A simple formula to guess how safe you are (0-100).
-        # We start with 100 and subtract points for distance and bad shelter quality.
+        # formula to guess how safe you are (0-100): start with 100 and subtract points for distance and bad shelter quality
         base_score = 100 - (distance_m / 50)  # lose 1 point every 50 m
 
         # Bonus for good protection
@@ -694,12 +665,11 @@ class SafetyModel:
         if is_alert_active:
             base_score -= 20
 
-        # Clamp between 0 and 100
+        # between 0 and 100
         return max(0, min(100, base_score))
 
     def predict_time_to_danger(self, region_id):
-        # Guess how long until things get dangerous (minutes).
-        # Random prediction for demo purposes
+        # guess how long until things get dangerous (minutes) (random prediction for demo purposes)
         return random.randint(5, 30)
 
 
@@ -713,18 +683,16 @@ def load_all_regions() -> list[str]:
 
 
 
-# ==========================================
-# UI Components
-# ==========================================
+# UI COMPONENTS
 
 class MapComponent:
     def render(self, user_lat, user_lon, shelters_df, route_geojson=None):
-        # Draw the map with the user, the shelters, and the path (if we have one).
+        # draw the map with the user, shelters, and path (if we have one)
         # We return the map so we receive click events (so we know where the user clicked).
         # Create base map
         m = folium.Map(location=[user_lat, user_lon], zoom_start=14)
 
-        # User Marker
+        # user marker
         folium.Marker(
             [user_lat, user_lon],
             popup="You are here",
@@ -732,7 +700,7 @@ class MapComponent:
             icon=folium.Icon(color="blue", icon="user")
         ).add_to(m)
 
-        # Shelters
+        # shelters
         if not shelters_df.empty:
             def get_color(type_name):
                 colors = {
@@ -766,7 +734,7 @@ class MapComponent:
                     fill_color=color
                 ).add_to(m)
 
-        # Route
+        # route
         if route_geojson:
             folium.GeoJson(
                 route_geojson,
@@ -775,7 +743,7 @@ class MapComponent:
             ).add_to(m)
 
         # Return the map object to be rendered by st_folium
-        # We want to capture clicks on the map
+        # capture clicks on the map
         return st_folium(m, width=None, height=500, returned_objects=["last_clicked"])
 
 
@@ -803,7 +771,7 @@ class Dashboard:
         with cols[1]:
             delta_color = "normal"
             if safety_score > 80:
-                delta_color = "normal"  # Greenish usually
+                delta_color = "normal"  # greenish
             elif safety_score < 50:
                 delta_color = "inverse"
 
@@ -813,14 +781,14 @@ class Dashboard:
             st.metric("Est. Time to Danger", f"{time_to_danger} min")
 
     def render_shelter_scores(self, shelter_row):
-        # Show specific scores for the shelter (Protection, Capacity, etc.)
+        # specific scores for the shelter (Protection, Capacity, etc.)
         if shelter_row.empty:
             return
 
-        st.subheader("📊 Shelter Quality Ratings")
+        st.subheader("Shelter Quality Ratings")
         
         # Expandable explanation for how ratings are calculated
-        with st.expander("ℹ️ How are these ratings calculated?"):
+        with st.expander("How are these ratings calculated?"):
             st.markdown("""
             **Shelter Quality Ratings** are heuristic estimates (1-10 scale) based on:
             
@@ -838,8 +806,6 @@ class Dashboard:
             - **Capacity** (how many people fit) — Random 4-9 (not based on real data)
             
             - **Reliability** (structural integrity) — Based on type with ±2 variance
-            
-            ⚠️ **Note:** These are estimates based on shelter type metadata, NOT real-time verified conditions.
             """)
 
         score_cols = [
@@ -850,7 +816,7 @@ class Dashboard:
             "Reliability Score"
         ]
 
-        # Use columns to display small progress bars or metrics
+        # use columns to display bars
         cols = st.columns(len(score_cols))
         
         for idx, col in enumerate(cols):
@@ -865,7 +831,7 @@ class Dashboard:
 class Sidebar:
     def __init__(self, geolocator):
         self.geolocator = geolocator
-        self.cities = UKRAINE_CITIES  # Use shared cities dictionary
+        self.cities = UKRAINE_CITIES  # shared cities dictionary
 
     def render(self):
         st.sidebar.header("Settings")
@@ -895,7 +861,7 @@ class Sidebar:
 
         elif input_method == "Address Search":
             address = st.sidebar.text_input("Enter Address (e.g. 'Maidan Nezalezhnosti, Kyiv')")
-            if st.sidebar.button("🔍 Search Address"):
+            if st.sidebar.button("Search Address"):
                 if address:
                     with st.spinner("Searching map..."):
                         try:
@@ -905,9 +871,9 @@ class Sidebar:
                                 lon = location.longitude
                                 st.session_state.user_lat = lat
                                 st.session_state.user_lon = lon
-                                st.sidebar.success(f"📍 Found: {location.address}")
+                                st.sidebar.success(f"Found: {location.address}")
                             else:
-                                st.sidebar.error("❌ Address not found. Try adding the city name.")
+                                st.sidebar.error("Address not found. Try adding the city name.")
                         except Exception as e:
                             st.sidebar.error(f"Error: {e}")
 
@@ -921,7 +887,7 @@ class Sidebar:
         st.sidebar.markdown("---")
         max_dist = st.sidebar.slider("Max Search Distance (m)", 500, 5000, 1000)
         
-        # --- ROUTING ---
+        # ROUTING
         st.sidebar.subheader("Routing Options")
         mode_choice = st.sidebar.radio(
             "Choose Travel Mode:",
@@ -933,25 +899,26 @@ class Sidebar:
         return {
             "lat": lat,
             "lon": lon,
-            "selected_type": "All", # Hardcoded 'All' since button is gone
+            "selected_type": "All",
             "max_dist": max_dist,
             "input_method": input_method,
             "travel_mode": travel_mode 
         }
-# ==========================================
-# Main Application
-# ==========================================
+
+
+
+# MAIN APPLICATION
 
 def main():
     st.set_page_config(page_title="SecurityUA", layout="wide")
     st.title("SecurityUA – Ukraine Air Alerts Monitor")
 
-    # Sidebar (global settings)
+    # sidebar (global settings)
     st.sidebar.header("Settings")
     refresh_interval = st.sidebar.slider("Auto-refresh (sec)", 10, 300, 60)
     auto_refresh = st.sidebar.checkbox("Enable auto-refresh", value=True)
 
-    # Initialize clients / helpers
+    # initialize clients / helpers
     alerts_client = AlertsClient()
     routing_client = RoutingClient() 
     processor = DataProcessor()
@@ -962,26 +929,27 @@ def main():
     geolocator = Nominatim(user_agent="security_ua_tracker")
     sidebar = Sidebar(geolocator)
 
-    # Create Tabs
+    # Tabs
     tab1, tab2 = st.tabs(["Monitor", "Risk Prediction"])
 
-    # =======================
+
+    
     # TAB 1: LIVE MONITORING
-    # =======================
+
     with tab1:
-        # --- User Location & Map Settings (Sidebar) ---
+        # use location & map settings (Sidebar)
         user_settings = sidebar.render()
         user_lat = user_settings['lat']
         user_lon = user_settings['lon']
 
-        # --- Alerts + Region Notification ---
+        # Alerts + Region Notification
         try:
             alerts_data = alerts_client.get_active_alerts()
         except Exception:
             alerts_data = {}
 
         # Show detailed alerts list
-        with st.expander("📋 View All Active Alerts"):
+        with st.expander("View All Active Alerts"):
             if alerts_data:
                 df_alerts = build_alerts_dataframe(alerts_data)
                 if not df_alerts.empty:
@@ -991,14 +959,14 @@ def main():
             else:
                 st.info("No active alerts data available.")
 
-        # --- Determine alert region from user's current location ---
+        # Determine alert region from user's current location
         watched_region = None
 
-        # Load ALL regions (not only those with active alerts)
+        # load ALL regions (not only those with active alerts)
         all_region_names = load_all_regions()
 
         if all_region_names:
-    # Map user coordinates to closest alerts.in.ua region
+        # Map user coordinates to closest alerts.in.ua region
             watched_region = infer_region_from_coords(
                 user_lat,
                 user_lon,
@@ -1006,14 +974,14 @@ def main():
                 geolocator
             )
 
-            # Store for reuse (alerts, metrics, etc.)
+            # store for reuse (alerts, metrics, etc.)
             st.session_state["watched_region"] = watched_region
 
             # Show active notification region
-            st.sidebar.markdown("### 🔔 Notifications")
+            st.sidebar.markdown("###Notifications")
             st.sidebar.info(f"Notifications tied to: **{watched_region}**")
 
-        # --- Real-Time Region-Specific Alert Notifications (UI toast + optional alarm) ---
+        # alert notifications (connected to region)
         if "last_region_alert_active" not in st.session_state:
             st.session_state.last_region_alert_active = False
 
@@ -1026,7 +994,7 @@ def main():
             # Visual toast in the app
             st.toast(f"🚨 NEW AIR ALERT in {watched_region}!", icon="⚠️")
 
-            # Optional: small alarm sound (tab must be opened/allowed to play audio)
+            # alarm sound WIUWIU
             st.markdown(
                 """
                 <audio autoplay>
@@ -1036,14 +1004,14 @@ def main():
                 unsafe_allow_html=True,
             )
 
-        # Update state for next rerun
+        # update state for next rerun
         st.session_state.last_region_alert_active = region_alert_active
 
-        # --- Map & Shelter Logic ---
-        # DO NOT call sidebar.render() again here – reuse user_settings / user_lat / user_lon
-        st.markdown("### 🗺️ Live Shelter Map")
+        # map & shelter logic
+        # reuse user_settings / user_lat / user_lon
+        st.markdown("### Live Shelter Map")
 
-        # Load Data
+        # load data
         with st.spinner("Loading shelters..."):
             try:
                 shelters_raw = load_data()
@@ -1052,10 +1020,10 @@ def main():
             except Exception:
                 shelters_raw = []
 
-        # Process & Filter
+        # process & filter
         shelters_df = processor.process_shelters(shelters_raw, user_lat, user_lon)
 
-        # Distance Filter
+        # distance filter
         nearby_df = shelters_df[shelters_df['distance_m'] <= user_settings['max_dist']]
         
         if nearby_df.empty and not shelters_df.empty:
@@ -1064,7 +1032,7 @@ def main():
         else:
             shelters_df = nearby_df
 
-        # Routing Logic
+        # routing logic
         nearest_shelter = pd.Series()
         route_geojson = None
         safety_score = 0
@@ -1072,29 +1040,29 @@ def main():
         is_alert_active = False  # you could also wire this to alerts_data if you want
 
         if not shelters_df.empty:
-            # Funnel (Top 5)
+            # funnel (Top 5)
             candidates = shelters_df.head(5).copy()
 
-            # Matrix API
+            # matrix API
             with st.spinner("Calculating optimal route..."):
                 nearest_shelter = routing_client.find_quickest_shelter(
                     user_lon, user_lat, candidates, profile=user_settings['travel_mode']
                 )
 
-            # Route Line
+            # route line
             route_geojson = routing_client.get_route(
                 (user_lon, user_lat),
                 (nearest_shelter['lon'], nearest_shelter['lat']),
                 profile=user_settings['travel_mode']
             )
             
-            # Scoring
+            # scoring
             protection = nearest_shelter.get('Protection Score', 5)
             safety_score = safety_model.predict_safety_score(
                 nearest_shelter['distance_m'], is_alert_active, protection
             )
 
-        # Render Metrics
+        # render metrics
         if 'duration_s' in nearest_shelter:
             mins = math.ceil(nearest_shelter['duration_s'] / 60)
             mode = "Walking" if user_settings['travel_mode'] == 'foot-walking' else "Driving"
@@ -1109,13 +1077,12 @@ def main():
             elif safety_score < 50:
                 delta_color = "inverse"
             
-            # Safety Score with explanation
+            # safety score and explanation
             c2.metric("Safety Score", f"{int(safety_score)}/100", delta_color=delta_color)
             with c2:
-                with st.expander("ℹ️ How is Safety Score calculated?"):
+                with st.expander("How is Safety Score calculated?"):
                     st.markdown("""
                     **Safety Score** (0-100) is calculated as:
-                    
                     1. Start at **100 points**
                     2. **Subtract distance penalty:** -1 point per 50m to shelter
                     3. **Add protection bonus:** +(shelter protection - 5) × 2
@@ -1130,7 +1097,7 @@ def main():
         else:
             dashboard.render_metrics(nearest_shelter, safety_score, time_to_danger)
 
-        # Render Map
+        # render Map
         map_data = map_component.render(user_lat, user_lon, shelters_df, route_geojson)
 
         # Map Click: allow user to move their "You are here" marker by clicking
@@ -1142,14 +1109,15 @@ def main():
                 st.session_state.user_lon = lng
                 st.rerun()
 
-        # Render Shelter Scores
+        # render Shelter scores
         if not nearest_shelter.empty:
             st.markdown("---")
             dashboard.render_shelter_scores(nearest_shelter)
 
-    # =======================
+
+    
     # TAB 2: RISK PREDICTION
-    # =======================
+
     with tab2:
         render_risk_prediction_tab()
 
