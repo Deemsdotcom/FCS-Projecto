@@ -1036,8 +1036,8 @@ def main():
         nearest_shelter = pd.Series()
         route_geojson = None
         safety_score = 0
-        time_to_danger = safety_model.predict_time_to_danger("Kyiv")
-        is_alert_active = False  # you could also wire this to alerts_data if you want
+        time_to_danger = safety_model.predict_time_to_danger(watched_region)
+        is_alert_active = region_alert_active
 
         if not shelters_df.empty:
             # funnel (Top 5)
