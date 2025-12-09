@@ -19,6 +19,36 @@ from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import LabelEncoder
 
 
+# Shared cities dictionary for consistent location selection
+UKRAINE_CITIES = {
+    "Kyiv": {"lat": 50.4501, "lon": 30.5234},
+    "Kharkiv": {"lat": 49.9935, "lon": 36.2304},
+    "Odesa": {"lat": 46.4825, "lon": 30.7233},
+    "Dnipro": {"lat": 48.4647, "lon": 35.0462},
+    "Donetsk": {"lat": 48.0159, "lon": 37.8028},
+    "Zaporizhzhia": {"lat": 47.8388, "lon": 35.1396},
+    "Lviv": {"lat": 49.8397, "lon": 24.0297},
+    "Kryvyi Rih": {"lat": 47.9105, "lon": 33.3918},
+    "Mykolaiv": {"lat": 46.9750, "lon": 31.9946},
+    "Mariupol": {"lat": 47.0971, "lon": 37.5434},
+    "Luhansk": {"lat": 48.5740, "lon": 39.3078},
+    "Vinnytsia": {"lat": 49.2331, "lon": 28.4682},
+    "Simferopol": {"lat": 44.9572, "lon": 34.1108},
+    "Chernihiv": {"lat": 51.4982, "lon": 31.2893},
+    "Kherson": {"lat": 46.6354, "lon": 32.6169},
+    "Poltava": {"lat": 49.5883, "lon": 34.5514},
+    "Khmelnytskyi": {"lat": 49.4230, "lon": 26.9871},
+    "Cherkasy": {"lat": 49.4444, "lon": 32.0598},
+    "Chernivtsi": {"lat": 48.2921, "lon": 25.9352},
+    "Zhytomyr": {"lat": 50.2547, "lon": 28.6587},
+    "Sumy": {"lat": 50.9077, "lon": 34.7981},
+    "Rivne": {"lat": 50.6199, "lon": 26.2516},
+    "Ivano-Frankivsk": {"lat": 48.9226, "lon": 24.7111},
+    "Ternopil": {"lat": 49.5535, "lon": 25.5948},
+    "Lutsk": {"lat": 50.7472, "lon": 25.3254},
+    "Uzhhorod": {"lat": 48.6208, "lon": 22.2879}
+}
+
 ##### shelters
 @st.cache_data
 def load_data():
@@ -599,15 +629,15 @@ def render_risk_prediction_tab():
             # 3) User inputs for prediction
             st.subheader("Predict alert probability")
 
-            # Get unique regions for dropdown, sorted
-            available_regions = sorted(alerts_df["region"].unique().tolist())
-
+            # Use same city selection as map sidebar
+            sorted_cities = sorted(list(UKRAINE_CITIES.keys()))
+            
             col1, col2 = st.columns(2)
             with col1:
-                selected_region = st.selectbox("Region", available_regions)
+                selected_city = st.selectbox("City", sorted_cities, index=sorted_cities.index("Kyiv") if "Kyiv" in sorted_cities else 0)
             
             # Input explanation
-            st.markdown("Select a region and a time to estimate the likelihood of an air alert based on historical patterns.")
+            st.markdown("Select a city and a time range to estimate the likelihood of an air alert based on historical patterns.")
 
             # Day of Week selector
             days_map = {
@@ -642,7 +672,7 @@ def render_risk_prediction_tab():
                         while current_minutes <= end_minutes:
                             hour = current_minutes // 60
                             minute = current_minutes % 60
-                            prob = predict_alert_probability(model, le, selected_region, day_of_week, hour, minute)
+                            prob = predict_alert_probability(model, le, selected_city, day_of_week, hour, minute)
                             probabilities.append(prob)
                             current_minutes += 1
                     
@@ -652,7 +682,7 @@ def render_risk_prediction_tab():
                     min_prob = min(probabilities)
                     
                     # Display results
-                    st.metric(f"Average Risk for {selected_region}", f"{avg_prob:.1%}")
+                    st.metric(f"Average Risk for {selected_city}", f"{avg_prob:.1%}")
                     
                     # Additional statistics
                     col1, col2, col3 = st.columns(3)
@@ -666,7 +696,7 @@ def render_risk_prediction_tab():
                     # Output explanation with time range display
                     start_str = f"{start_time.hour:02d}:{start_time.minute:02d}"
                     end_str = f"{end_time.hour:02d}:{end_time.minute:02d}"
-                    st.caption(f"This shows the alert probability for {selected_region} on {day_name} between **{start_str}** and **{end_str}**. The model analyzed {len(probabilities)} individual minutes in this timespan.")
+                    st.caption(f"This shows the alert probability for {selected_city} on {day_name} between **{start_str}** and **{end_str}**. The model analyzed {len(probabilities)} individual minutes in this timespan.")
 
 class SafetyModel:
     def predict_safety_score(self, distance_m, is_alert_active, protection_score=5):
@@ -840,34 +870,7 @@ class Dashboard:
 class Sidebar:
     def __init__(self, geolocator):
         self.geolocator = geolocator
-        self.cities = {
-            "Kyiv": {"lat": 50.4501, "lon": 30.5234},
-            "Kharkiv": {"lat": 49.9935, "lon": 36.2304},
-            "Odesa": {"lat": 46.4825, "lon": 30.7233},
-            "Dnipro": {"lat": 48.4647, "lon": 35.0462},
-            "Donetsk": {"lat": 48.0159, "lon": 37.8028},
-            "Zaporizhzhia": {"lat": 47.8388, "lon": 35.1396},
-            "Lviv": {"lat": 49.8397, "lon": 24.0297},
-            "Kryvyi Rih": {"lat": 47.9105, "lon": 33.3918},
-            "Mykolaiv": {"lat": 46.9750, "lon": 31.9946},
-            "Mariupol": {"lat": 47.0971, "lon": 37.5434},
-            "Luhansk": {"lat": 48.5740, "lon": 39.3078},
-            "Vinnytsia": {"lat": 49.2331, "lon": 28.4682},
-            "Simferopol": {"lat": 44.9572, "lon": 34.1108},
-            "Chernihiv": {"lat": 51.4982, "lon": 31.2893},
-            "Kherson": {"lat": 46.6354, "lon": 32.6169},
-            "Poltava": {"lat": 49.5883, "lon": 34.5514},
-            "Khmelnytskyi": {"lat": 49.4230, "lon": 26.9871},
-            "Cherkasy": {"lat": 49.4444, "lon": 32.0598},
-            "Chernivtsi": {"lat": 48.2921, "lon": 25.9352},
-            "Zhytomyr": {"lat": 50.2547, "lon": 28.6587},
-            "Sumy": {"lat": 50.9077, "lon": 34.7981},
-            "Rivne": {"lat": 50.6199, "lon": 26.2516},
-            "Ivano-Frankivsk": {"lat": 48.9226, "lon": 24.7111},
-            "Ternopil": {"lat": 49.5535, "lon": 25.5948},
-            "Lutsk": {"lat": 50.7472, "lon": 25.3254},
-            "Uzhhorod": {"lat": 48.6208, "lon": 22.2879}
-        }
+        self.cities = UKRAINE_CITIES  # Use shared cities dictionary
 
     def render(self):
         st.sidebar.header("Settings")
