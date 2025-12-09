@@ -1174,11 +1174,6 @@ def main():
         else:
             dashboard.render_metrics(nearest_shelter, safety_score, time_to_danger)
 
-        # Render Shelter Scores
-        if not nearest_shelter.empty:
-            st.markdown("---")
-            dashboard.render_shelter_scores(nearest_shelter)
-
         # Render Map
         map_data = map_component.render(user_lat, user_lon, shelters_df, route_geojson)
 
@@ -1190,6 +1185,13 @@ def main():
                 st.session_state.user_lat = lat
                 st.session_state.user_lon = lng
                 st.rerun()
+
+        # Render Shelter Scores
+        if not nearest_shelter.empty:
+            st.markdown("---")
+            dashboard.render_shelter_scores(nearest_shelter)
+
+    
 
     # =======================
     # TAB 2: RISK PREDICTION
