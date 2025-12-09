@@ -609,28 +609,65 @@ def render_risk_prediction_tab():
             # Input explanation
             st.markdown("Select a region and a time to estimate the likelihood of an air alert based on historical patterns.")
 
+            # Day of Week selector
+            days_map = {
+                "Monday": 0, "Tuesday": 1, "Wednesday": 2, "Thursday": 3, 
+                "Friday": 4, "Saturday": 5, "Sunday": 6
+            }
+            day_name = st.selectbox("Day of Week", list(days_map.keys()))
+            day_of_week = days_map[day_name]
+            
+            # Time range selection
+            from datetime import time, datetime, timedelta
+            st.markdown("**Select Time Range:**")
             col_a, col_b = st.columns(2)
             with col_a:
-                # Day of Week selector
-                days_map = {
-                    "Monday": 0, "Tuesday": 1, "Wednesday": 2, "Thursday": 3, 
-                    "Friday": 4, "Saturday": 5, "Sunday": 6
-                }
-                day_name = st.selectbox("Day of Week", list(days_map.keys()))
-                day_of_week = days_map[day_name]
+                start_time = st.time_input("Start Time", value=time(12, 0))
             with col_b:
-                # Custom time picker for exact time selection (e.g., 13:15)
-                from datetime import time
-                selected_time = st.time_input("Time of Day", value=time(12, 0))
-                hour = selected_time.hour
-                minute = selected_time.minute
+                end_time = st.time_input("End Time", value=time(12, 15))
 
             if st.button("Predict"):
-                prob = predict_alert_probability(model, le, selected_region, day_of_week, hour, minute)
-                st.metric(f"Risk for {selected_region}", f"{prob:.1%}")
-                # Output explanation with exact time display
-                time_str = f"{hour:02d}:{minute:02d}"
-                st.caption(f"This percentage ({prob:.1%}) represents the model's estimated probability of an alert occurring in {selected_region} on {day_name} at {time_str}.")
+                # Convert times to minutes since midnight for easier calculation
+                start_minutes = start_time.hour * 60 + start_time.minute
+                end_minutes = end_time.hour * 60 + end_time.minute
+                
+                # Validate time range
+                if start_minutes >= end_minutes:
+                    st.error("⚠️ End time must be after start time!")
+                else:
+                    # Calculate probability for each minute in the range
+                    probabilities = []
+                    current_minutes = start_minutes
+                    
+                    with st.spinner(f"Calculating probabilities for {end_minutes - start_minutes + 1} minutes..."):
+                        while current_minutes <= end_minutes:
+                            hour = current_minutes // 60
+                            minute = current_minutes % 60
+                            prob = predict_alert_probability(model, le, selected_region, day_of_week, hour, minute)
+                            probabilities.append(prob)
+                            current_minutes += 1
+                    
+                    # Calculate average probability
+                    avg_prob = sum(probabilities) / len(probabilities)
+                    max_prob = max(probabilities)
+                    min_prob = min(probabilities)
+                    
+                    # Display results
+                    st.metric(f"Average Risk for {selected_region}", f"{avg_prob:.1%}")
+                    
+                    # Additional statistics
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("Minimum Risk", f"{min_prob:.1%}")
+                    with col2:
+                        st.metric("Maximum Risk", f"{max_prob:.1%}")
+                    with col3:
+                        st.metric("Minutes Analyzed", len(probabilities))
+                    
+                    # Output explanation with time range display
+                    start_str = f"{start_time.hour:02d}:{start_time.minute:02d}"
+                    end_str = f"{end_time.hour:02d}:{end_time.minute:02d}"
+                    st.caption(f"This shows the alert probability for {selected_region} on {day_name} between **{start_str}** and **{end_str}**. The model analyzed {len(probabilities)} individual minutes in this timespan.")
 
 class SafetyModel:
     def predict_safety_score(self, distance_m, is_alert_active, protection_score=5):
