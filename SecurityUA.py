@@ -980,7 +980,7 @@ class Sidebar:
         st.sidebar.subheader("Routing Options")
         mode_choice = st.sidebar.radio(
             "Choose Travel Mode:",
-            ["Walking 🚶", "Driving 🚗"],
+            ["Walking", "Driving"],
             index=0
         )
         travel_mode = "foot-walking" if "Walking" in mode_choice else "driving-car"
@@ -999,7 +999,7 @@ class Sidebar:
 
 def main():
     st.set_page_config(page_title="SecurityUA", layout="wide")
-    st.title("🛡️ SecurityUA – Ukraine Air Alerts Monitor")
+    st.title("SecurityUA – Ukraine Air Alerts Monitor")
 
     # Sidebar (global settings)
     st.sidebar.header("Settings")
@@ -1084,7 +1084,7 @@ def main():
         st.session_state.last_region_alert_active = region_alert_active
 
         # --- Map & Shelter Logic ---
-        # ⚠️ DO NOT call sidebar.render() again here – reuse user_settings / user_lat / user_lon
+        # DO NOT call sidebar.render() again here – reuse user_settings / user_lat / user_lon
         st.markdown("### 🗺️ Live Shelter Map")
 
         # Load Data
