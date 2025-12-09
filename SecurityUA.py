@@ -2,21 +2,21 @@ import streamlit as st
 import requests
 import random
 import time
+import json
+import math
+from datetime import time as dt_time, datetime, timedelta
 
 import openrouteservice
 import pandas as pd
-from geopy.distance import geodesic
-import json
-
 import numpy as np
 import folium
+from geopy.distance import geodesic
+from geopy.geocoders import Nominatim
 from streamlit_folium import st_folium
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import LabelEncoder
-from geopy.geocoders import Nominatim
-import math
 
 
 ##### shelters
@@ -618,13 +618,12 @@ def render_risk_prediction_tab():
             day_of_week = days_map[day_name]
             
             # Time range selection
-            from datetime import time, datetime, timedelta
             st.markdown("**Select Time Range:**")
             col_a, col_b = st.columns(2)
             with col_a:
-                start_time = st.time_input("Start Time", value=time(12, 0))
+                start_time = st.time_input("Start Time", value=dt_time(12, 0))
             with col_b:
-                end_time = st.time_input("End Time", value=time(12, 15))
+                end_time = st.time_input("End Time", value=dt_time(12, 15))
 
             if st.button("Predict"):
                 # Convert times to minutes since midnight for easier calculation
