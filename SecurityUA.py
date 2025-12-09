@@ -757,6 +757,26 @@ class SafetyModel:
         # Random prediction for demo purposes
         return random.randint(5, 30)
 
+
+@st.cache_data(ttl=3600)
+def load_all_regions() -> list[str]:
+    # Load all Ukraine alert regions (used for location → region mapping)
+    headers = {"Authorization": f"Bearer {ALERTS_API_TOKEN}"}
+    try:
+        resp = requests.get(
+            f"{ALERTS_API_BASE_URL}/regions.json",
+            headers=headers,
+            timeout=10
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        regions = data.get("regions", [])
+        return [r.get("title") for r in regions if r.get("title")]
+    except Exception as e:
+        st.sidebar.warning(f"Could not load region list: {e}")
+        return []
+
+
 # ==========================================
 # UI Components
 # ==========================================
@@ -1024,28 +1044,27 @@ def main():
         except Exception:
             alerts_data = {}
 
-        watched_region = None  # inferred from user location
+        # --- Determine alert region from user's current location ---
+        watched_region = None
 
-        if alerts_data:
-            df_alerts = build_alerts_dataframe(alerts_data)
-            if not df_alerts.empty:
-                region_names = sorted(df_alerts["location_title"].dropna().unique())
-                if region_names:
-                    # 🔄 Automatically sync notification region to user location
-                    watched_region = infer_region_from_coords(
-                        user_lat,
-                        user_lon,
-                        region_names,
-                        geolocator
-                    )
+        # Load ALL regions (not only those with active alerts)
+        all_region_names = load_all_regions()
 
-                    # Optional: show which region is being used (read-only, no selectbox)
-                    st.sidebar.markdown("### 🔔 Notifications")
-                    st.sidebar.info(f"Notifications tied to: **{watched_region}**")
+        if all_region_names:
+    # Map user coordinates to closest alerts.in.ua region
+            watched_region = infer_region_from_coords(
+                user_lat,
+                user_lon,
+                all_region_names,
+                geolocator
+            )
 
-                # Existing table of active alerts
-                with st.expander("🚨 Active Alerts", expanded=False):
-                    st.dataframe(df_alerts, use_container_width=True)
+            # Store for reuse (alerts, metrics, etc.)
+            st.session_state["watched_region"] = watched_region
+
+            # Show active notification region
+            st.sidebar.markdown("### 🔔 Notifications")
+            st.sidebar.info(f"Notifications tied to: **{watched_region}**")
 
         # --- Real-Time Region-Specific Alert Notifications (UI toast + optional alarm) ---
         if "last_region_alert_active" not in st.session_state:
