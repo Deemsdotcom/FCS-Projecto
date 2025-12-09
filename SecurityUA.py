@@ -566,33 +566,41 @@ def load_historical_alerts_for_ml() -> (pd.DataFrame, list):
     # 2. Build the "Zeroes" (The Days When Nothing Happened)
     # The API is great at telling us when alerts happened (the "1s"), but it says nothing about the peaceful days (the "0s").
     # If we only showed the model the alerts, it would think the world is constantly ending! 
-    # So, we have to manually build a grid for each day of the week (filled with 0s) 
+    # So, we have to manually build a grid for each DATE in the last 30 days (filled with 0s)
     # and then mark which days had alerts. This gives the model a fair picture of reality.
     
+    # Generate the last 30 days (as dates)
+    end_date = datetime.now().date()
+    start_date = end_date - timedelta(days=29) # 30 days total including today
+    date_range = pd.date_range(start=start_date, end=end_date, freq='D')
+
     grid_data = []
     regions = df['region'].unique()
 
-    # Create a row for each combination of region and day of week
+    # Create a row for each combination of region and specific DATE
     for region in regions:
-        for day in range(7):  # 0 (Monday) to 6 (Sunday)
+        for single_date in date_range:
             grid_data.append({
                 "region": region,
-                "day_of_week": day
+                "date": single_date.date(),
+                "day_of_week": single_date.dayofweek
             })
 
     grid_df = pd.DataFrame(grid_data)
 
     # 3. Calculate "alert_occurrence"
-    # Count how many alerts occurred for each day of week + region combination
-    alert_counts = df.groupby(['day_of_week', 'region']).size().reset_index(name='alert_count')
+    # Match actual alerts to our daily grid
+    # Ensure alerts have a 'date' column for merging
+    df['date'] = df['timestamp'].dt.date
     
-    grid_df = pd.DataFrame(grid_data)
+    # Count how many alerts occurred for each date + region combination
+    alert_counts = df.groupby(['region', 'date']).size().reset_index(name='alert_count')
     
-    # Merge with the alert counts
-    grid_df = grid_df.merge(alert_counts, on=['day_of_week', 'region'], how='left')
+    # Merge with the grid
+    grid_df = grid_df.merge(alert_counts, on=['region', 'date'], how='left')
     grid_df['alert_count'] = grid_df['alert_count'].fillna(0)
     
-    # Binary: did an alert occur on this day of week for this region?
+    # Binary: did an alert occur on this specific DATE?
     grid_df['alert_occurrence'] = (grid_df['alert_count'] > 0).astype(int)
 
     return grid_df, error_log
