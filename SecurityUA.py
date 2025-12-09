@@ -263,7 +263,8 @@ def infer_region_from_coords(lat, lon, region_names, geolocator):
 
         return region_names[0]  # last fallback
     except Exception as e:
-        st.sidebar.warning(f"Reverse geocoding failed, using default region. ({e})")
+        s print(f"DEBUG: Reverse geocoding failed: {e}")
+        st.sidebar.warning("Location lookup failed (Network Error). Using default region.")
         # Same fallback logic
         for candidate in ["Kyiv Oblast", "Kyiv City"]:
             if candidate in region_names:
