@@ -973,7 +973,7 @@ def main():
             st.session_state["watched_region"] = watched_region
 
             # Show active notification region
-            st.sidebar.markdown("Notifications")
+            st.sidebar.subheader("Notifications")
             st.sidebar.info(f"Notifications tied to: **{watched_region}**")
 
         # alert notifications (connected to region)
