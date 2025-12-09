@@ -690,7 +690,7 @@ def render_risk_prediction_tab():
         
         **How it works:**
         1. Downloads all alerts from the last 30 days for all Ukrainian regions
-        2. Creates a timeline marking **every minute** when an alert was active (not just when it started)
+        2. Creates a timeline marking **every minute** when an alert was active
         3. Trains a machine learning model to find patterns in: day of week, hour, and location
         4. Predicts the likelihood of danger at your selected time
         
@@ -698,8 +698,6 @@ def render_risk_prediction_tab():
         - **5-15%**: Low risk - alerts are relatively uncommon at this time/location
         - **15-30%**: Moderate risk - this time/location has seen significant alert activity
         - **30%+**: High risk - historically frequent alerts at this time/location
-        
-        ⚠️ **Note:** Past patterns don't guarantee future events. Use this as one input among many for safety decisions.
         """)
 
     # 1) Load data
@@ -933,7 +931,7 @@ class Dashboard:
         if shelter_row.empty:
             return
 
-        st.subheader("📊 Shelter Quality Ratings")
+        st.subheader("Shelter Quality Ratings")
         
         # Expandable explanation for how ratings are calculated
         with st.expander("ℹ️ How are these ratings calculated?"):
@@ -954,8 +952,6 @@ class Dashboard:
             - **Capacity** (how many people fit) — Random 4-9 (not based on real data)
             
             - **Reliability** (structural integrity) — Based on type with ±2 variance
-            
-            ⚠️ **Note:** These are estimates based on shelter type metadata, NOT real-time verified conditions.
             """)
 
         score_cols = [
@@ -1021,9 +1017,9 @@ class Sidebar:
                                 lon = location.longitude
                                 st.session_state.user_lat = lat
                                 st.session_state.user_lon = lon
-                                st.sidebar.success(f"📍 Found: {location.address}")
+                                st.sidebar.success(f"Found: {location.address}")
                             else:
-                                st.sidebar.error("❌ Address not found. Try adding the city name.")
+                                st.sidebar.error("Address not found. Try adding the city name.")
                         except Exception as e:
                             st.sidebar.error(f"Error: {e}")
 
@@ -1115,7 +1111,7 @@ def main():
             st.session_state["watched_region"] = watched_region
 
             # Show active notification region
-            st.sidebar.markdown("### 🔔 Notifications")
+            st.sidebar.markdown("### Notifications")
             st.sidebar.info(f"Notifications tied to: **{watched_region}**")
 
         # --- Real-Time Region-Specific Alert Notifications (UI toast + optional alarm) ---
@@ -1146,7 +1142,7 @@ def main():
 
         # --- Map & Shelter Logic ---
         # DO NOT call sidebar.render() again here – reuse user_settings / user_lat / user_lon
-        st.markdown("### 🗺️ Live Shelter Map")
+        st.markdown("### Live Shelter Map")
 
         # Load Data
         with st.spinner("Loading shelters..."):
