@@ -1014,9 +1014,9 @@ def main():
     # =======================
     with tab1:
     # --- User Location & Map Settings (Sidebar) ---
-    user_settings = sidebar.render()
-    user_lat = user_settings['lat']
-    user_lon = user_settings['lon']
+        user_settings = sidebar.render()
+        user_lat = user_settings['lat']
+        user_lon = user_settings['lon']
 
     # --- Alerts + Region Notification ---
     try:
