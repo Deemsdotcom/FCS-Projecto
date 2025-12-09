@@ -1026,17 +1026,17 @@ def main():
 
     watched_region = None  # inferred from user location
 
-        if alerts_data:
-    df_alerts = build_alerts_dataframe(alerts_data)
-    if not df_alerts.empty:
-        region_names = sorted(df_alerts["location_title"].dropna().unique())
-        if region_names:
+    if alerts_data:
+        df_alerts = build_alerts_dataframe(alerts_data)
+        if not df_alerts.empty:
+            region_names = sorted(df_alerts["location_title"].dropna().unique())
+            if region_names:
             # 🔄 Automatically sync notification region to user location
-            watched_region = infer_region_from_coords(
-                user_lat,
-                user_lon,
-                region_names,
-                geolocator
+                watched_region = infer_region_from_coords(
+                    user_lat,
+                    user_lon,
+                    region_names,
+                    geolocator
             )
 
             # Optional: show which region is being used (read-only, no selectbox)
