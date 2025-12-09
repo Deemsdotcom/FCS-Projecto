@@ -213,6 +213,45 @@ def is_region_under_air_raid(alerts_data: dict, region_name: str) -> bool:
             return True
     return False
 
+def infer_region_from_coords(lat, lon, region_names, geolocator):
+    """
+    Try to infer the alerts region (location_title) from the user's coordinates.
+    Uses Nominatim reverse geocoding, then matches the state/region name against
+    the list of region_names from the alerts API.
+    """
+    if not region_names:
+        return None
+
+    try:
+        location = geolocator.reverse((lat, lon), language="en")
+        if location and hasattr(location, "raw"):
+            addr = location.raw.get("address", {})
+            # Nominatim usually puts oblast in 'state' for Ukraine
+            state_name = addr.get("state") or addr.get("region") or addr.get("county")
+
+            if state_name:
+                # Try direct or fuzzy-ish matching
+                # e.g. "Lviv Oblast" vs "Lvivska oblast" vs "Lviv"
+                state_lower = state_name.lower()
+                for r in region_names:
+                    r_lower = r.lower()
+                    if state_lower in r_lower or r_lower in state_lower:
+                        return r
+
+        # Fallback – just pick something (e.g. Kyiv Oblast or first in list)
+        for candidate in ["Kyiv Oblast", "Kyiv City"]:
+            if candidate in region_names:
+                return candidate
+
+        return region_names[0]  # last fallback
+    except Exception as e:
+        st.sidebar.warning(f"Reverse geocoding failed, using default region. ({e})")
+        # Same fallback logic
+        for candidate in ["Kyiv Oblast", "Kyiv City"]:
+            if candidate in region_names:
+                return candidate
+        return region_names[0]
+
 
 class RoutingClient:
     def __init__(self, api_key="eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6Ijg2ZjI2ODQ1Y2JhMzQ1YTJhNmU3MDgwNDM0NjI4NGY5IiwiaCI6Im11cm11cjY0In0="):
@@ -974,29 +1013,40 @@ def main():
     # TAB 1: LIVE MONITORING
     # =======================
     with tab1:
-        # --- Alerts + Region Notification ---
-        try:
-            alerts_data = alerts_client.get_active_alerts()
-        except Exception:
-            alerts_data = {}
+    # --- User Location & Map Settings (Sidebar) ---
+    user_settings = sidebar.render()
+    user_lat = user_settings['lat']
+    user_lon = user_settings['lon']
 
-        watched_region = None  # store the user-selected region
+    # --- Alerts + Region Notification ---
+    try:
+        alerts_data = alerts_client.get_active_alerts()
+    except Exception:
+        alerts_data = {}
+
+    watched_region = None  # inferred from user location
 
         if alerts_data:
-            df_alerts = build_alerts_dataframe(alerts_data)
-            if not df_alerts.empty:
-                # Sidebar selectbox: which region should trigger notifications?
-                region_names = sorted(df_alerts["location_title"].dropna().unique())
-                if region_names:
-                    watched_region = st.sidebar.selectbox(
-                        "🔔 Notify me about alerts in:",
-                        options=region_names,
-                        index=region_names.index("Kyiv Oblast") if "Kyiv Oblast" in region_names else 0
-                    )
+    df_alerts = build_alerts_dataframe(alerts_data)
+    if not df_alerts.empty:
+        region_names = sorted(df_alerts["location_title"].dropna().unique())
+        if region_names:
+            # 🔄 Automatically sync notification region to user location
+            watched_region = infer_region_from_coords(
+                user_lat,
+                user_lon,
+                region_names,
+                geolocator
+            )
 
-                # Existing table of active alerts
-                with st.expander("🚨 Active Alerts", expanded=False):
-                    st.dataframe(df_alerts, use_container_width=True)
+            # Optional: show which region is being used (read-only, no selectbox)
+            st.sidebar.markdown("### 🔔 Notifications")
+            st.sidebar.info(f"Notifications tied to: **{watched_region}**")
+
+        # Existing table of active alerts
+        with st.expander("🚨 Active Alerts", expanded=False):
+            st.dataframe(df_alerts, use_container_width=True)
+
 
         # --- Real-Time Region-Specific Alert Notifications (UI toast + optional alarm) ---
         if "last_region_alert_active" not in st.session_state:
