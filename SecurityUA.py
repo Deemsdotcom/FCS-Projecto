@@ -4,7 +4,7 @@ import random
 import time
 import json
 import math
-from datetime import time as dt_time, datetime, timedelta
+from datetime import datetime, timedelta
 
 import openrouteservice
 import pandas as pd
@@ -351,51 +351,7 @@ class RoutingClient:
         }
 
 
-class NominatimClient:
-    BASE_URL = "https://nominatim.openstreetmap.org"
-    USER_AGENT = "SafeShelterUkraine/1.0"
 
-    def geocode(self, query):
-        # Turn an address (like "Kyiv, Maidan") into coordinates (lat/lon).
-        params = {
-            "q": query,
-            "format": "json",
-            "limit": 1
-        }
-        headers = {"User-Agent": self.USER_AGENT}
-
-        try:
-            response = requests.get(f"{self.BASE_URL}/search", params=params, headers=headers)
-            response.raise_for_status()
-            data = response.json()
-            if data:
-                return {
-                    "lat": float(data[0]['lat']),
-                    "lon": float(data[0]['lon']),
-                    "display_name": data[0]['display_name']
-                }
-            return None
-        except requests.RequestException as e:
-            st.error(f"Geocoding error: {e}")
-            return None
-
-    def reverse_geocode(self, lat, lon):
-        # Turn coordinates back into an address string.
-        params = {
-            "lat": lat,
-            "lon": lon,
-            "format": "json"
-        }
-        headers = {"User-Agent": self.USER_AGENT}
-
-        try:
-            response = requests.get(f"{self.BASE_URL}/reverse", params=params, headers=headers)
-            response.raise_for_status()
-            data = response.json()
-            return data.get('display_name')
-        except requests.RequestException as e:
-            st.error(f"Reverse geocoding error: {e}")
-            return None
 
 
 # ==========================================
@@ -499,18 +455,7 @@ class DataProcessor:
 
         return scores
 
-    def filter_shelters(self, df, max_distance=None, shelter_type=None):
-        # Filter shelters based on max distance or type.
-        if df.empty:
-            return df
 
-        if max_distance:
-            df = df[df['distance_m'] <= max_distance]
-
-        if shelter_type:
-            df = df[df['type'] == shelter_type]
-
-        return df
 
 
 
@@ -1035,8 +980,7 @@ def main():
         except Exception:
             alerts_data = {}
 
-
-         # Show detailed alerts list
+        # Show detailed alerts list
         with st.expander("📋 View All Active Alerts"):
             if alerts_data:
                 df_alerts = build_alerts_dataframe(alerts_data)
@@ -1046,7 +990,6 @@ def main():
                     st.info("No active alerts currently.")
             else:
                 st.info("No active alerts data available.")
-                
 
         # --- Determine alert region from user's current location ---
         watched_region = None
@@ -1203,8 +1146,6 @@ def main():
         if not nearest_shelter.empty:
             st.markdown("---")
             dashboard.render_shelter_scores(nearest_shelter)
-
-    
 
     # =======================
     # TAB 2: RISK PREDICTION
