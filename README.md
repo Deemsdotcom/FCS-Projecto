@@ -1,5 +1,5 @@
 # FCS-Projecto
-🛡️ Project Overview
+Project Overview
 
 SecurityUA is a Streamlit web application that integrates real-time air alert information, geospatial shelter discovery, routing, and a basic machine learning risk model.
 
