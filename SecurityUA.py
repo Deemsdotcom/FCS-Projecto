@@ -520,9 +520,7 @@ def load_historical_alerts_for_ml() -> (pd.DataFrame, list):
                     all_alerts.append({
                         "timestamp": started_at,
                         "region": reg,
-                        "day_of_week": started_at.dayofweek,
-                        "hour": started_at.hour,
-                        "minute": started_at.minute
+                        "day_of_week": started_at.dayofweek
                     })
             else:
                 error_log.append(f"Failed to fetch data for region {uid}: {response.status_code}")
@@ -534,38 +532,37 @@ def load_historical_alerts_for_ml() -> (pd.DataFrame, list):
 
     df = pd.DataFrame(all_alerts)
 
-    # 2. Build the "Zeroes" (The Times When Nothing Happened)
-    # The API is great at telling us when alerts happened (the "1s"), but it says nothing about the peaceful times (the "0s").
+    # 2. Build the "Zeroes" (The Days When Nothing Happened)
+    # The API is great at telling us when alerts happened (the "1s"), but it says nothing about the peaceful days (the "0s").
     # If we only showed the model the alerts, it would think the world is constantly ending! 
-    # So, we have to manually build a giant blank calendar for the last 30 days (filled with 0s) 
-    # and then stamp our alerts onto it. This gives the model a fair picture of reality.
-    end_date = pd.Timestamp.now(tz='UTC').floor('H')
-    start_date = end_date - pd.Timedelta(days=30)
-    date_range = pd.date_range(start=start_date, end=end_date, freq='H')
-
+    # So, we have to manually build a grid for each day of the week (filled with 0s) 
+    # and then mark which days had alerts. This gives the model a fair picture of reality.
+    
     grid_data = []
     regions = df['region'].unique()
 
+    # Create a row for each combination of region and day of week
     for region in regions:
-        for dt in date_range:
+        for day in range(7):  # 0 (Monday) to 6 (Sunday)
             grid_data.append({
-                "timestamp": dt,
                 "region": region,
-                "day_of_week": dt.dayofweek,
-                "hour": dt.hour,
-                "minute": dt.minute
+                "day_of_week": day
             })
 
     grid_df = pd.DataFrame(grid_data)
 
     # 3. Calculate "alert_occurrence"
-    # Identify which slots in our empty grid actually correspond to a real alert.
-    active_slots = set(zip(df['day_of_week'], df['hour'], df['minute'], df['region']))
-
-    def is_active(row):
-        return 1 if (row['day_of_week'], row['hour'], row['minute'], row['region']) in active_slots else 0
-
-    grid_df['alert_occurrence'] = grid_df.apply(is_active, axis=1)
+    # Count how many alerts occurred for each day of week + region combination
+    alert_counts = df.groupby(['day_of_week', 'region']).size().reset_index(name='alert_count')
+    
+    grid_df = pd.DataFrame(grid_data)
+    
+    # Merge with the alert counts
+    grid_df = grid_df.merge(alert_counts, on=['day_of_week', 'region'], how='left')
+    grid_df['alert_count'] = grid_df['alert_count'].fillna(0)
+    
+    # Binary: did an alert occur on this day of week for this region?
+    grid_df['alert_occurrence'] = (grid_df['alert_count'] > 0).astype(int)
 
     return grid_df, error_log
 
@@ -579,7 +576,7 @@ def train_alert_risk_model(alerts_df: pd.DataFrame):
     if alerts_df.empty or "alert_occurrence" not in alerts_df.columns:
         raise ValueError("Input DataFrame is empty or missing required columns.")
 
-    feature_cols = ["day_of_week", "hour", "minute", "region_encoded"]
+    feature_cols = ["day_of_week", "region_encoded"]
     
     # We need to turn string regions "Kyiv" into numbers "1" for the math to work.
     le = LabelEncoder()
@@ -615,14 +612,10 @@ def train_alert_risk_model(alerts_df: pd.DataFrame):
 
 
 
-def predict_alert_probability(model, le, region: str, day_of_week: int, hour: int, minute: int) -> float:
-    # Ask the trained model how likely an alert is right now for a specific region.
+def predict_alert_probability(model, le, region: str, day_of_week: int) -> float:
+    # Ask the trained model how likely an alert is for a specific day of week and region.
     if not (0 <= day_of_week <= 6):
         raise ValueError("Day of Week must be between 0 (Mon) and 6 (Sun)")
-    if not (0 <= hour <= 23):
-        raise ValueError("Hour must be between 0 and 23")
-    if not (0 <= minute <= 59):
-        raise ValueError("Minute must be between 0 and 59")
 
     if model is None or le is None:
         return 0.0
@@ -635,7 +628,7 @@ def predict_alert_probability(model, le, region: str, day_of_week: int, hour: in
         # If the model has never seen this region, it can't guess. Safe fallback.
         return 0.0
 
-    X_new = np.array([[day_of_week, hour, minute, region_encoded]], dtype=float)
+    X_new = np.array([[day_of_week, region_encoded]], dtype=float)
     return model.predict_proba(X_new)[0, 1]
 
 def render_risk_prediction_tab():
@@ -674,68 +667,27 @@ def render_risk_prediction_tab():
             col1, col2 = st.columns(2)
             with col1:
                 selected_city = st.selectbox("City", sorted_cities, index=sorted_cities.index("Kyiv") if "Kyiv" in sorted_cities else 0)
+            with col2:
+                # Day of Week selector
+                days_map = {
+                    "Monday": 0, "Tuesday": 1, "Wednesday": 2, "Thursday": 3, 
+                    "Friday": 4, "Saturday": 5, "Sunday": 6
+                }
+                day_name = st.selectbox("Day of Week", list(days_map.keys()))
+                day_of_week = days_map[day_name]
             
             # Input explanation
-            st.markdown("Select a city and a time range to estimate the likelihood of an air alert based on historical patterns.")
-
-            # Day of Week selector
-            days_map = {
-                "Monday": 0, "Tuesday": 1, "Wednesday": 2, "Thursday": 3, 
-                "Friday": 4, "Saturday": 5, "Sunday": 6
-            }
-            day_name = st.selectbox("Day of Week", list(days_map.keys()))
-            day_of_week = days_map[day_name]
-            
-            # Time range selection
-            st.markdown("**Select Time Range:**")
-            col_a, col_b = st.columns(2)
-            with col_a:
-                start_time = st.time_input("Start Time", value=dt_time(12, 0))
-            with col_b:
-                end_time = st.time_input("End Time", value=dt_time(12, 15))
+            st.markdown("Select a city and day of week to estimate the likelihood of an air alert based on historical patterns.")
 
             if st.button("Predict"):
-                # Convert times to minutes since midnight for easier calculation
-                start_minutes = start_time.hour * 60 + start_time.minute
-                end_minutes = end_time.hour * 60 + end_time.minute
+                # Calculate probability for the selected day
+                prob = predict_alert_probability(model, le, selected_city, day_of_week)
                 
-                # Validate time range
-                if start_minutes >= end_minutes:
-                    st.error("⚠️ End time must be after start time!")
-                else:
-                    # Calculate probability for each minute in the range
-                    probabilities = []
-                    current_minutes = start_minutes
-                    
-                    with st.spinner(f"Calculating probabilities for {end_minutes - start_minutes + 1} minutes..."):
-                        while current_minutes <= end_minutes:
-                            hour = current_minutes // 60
-                            minute = current_minutes % 60
-                            prob = predict_alert_probability(model, le, selected_city, day_of_week, hour, minute)
-                            probabilities.append(prob)
-                            current_minutes += 1
-                    
-                    # Calculate average probability
-                    avg_prob = sum(probabilities) / len(probabilities)
-                    max_prob = max(probabilities)
-                    min_prob = min(probabilities)
-                    
-                    # Display results
-                    st.metric(f"Average Risk for {selected_city}", f"{avg_prob:.1%}")
-                    
-                    # Additional statistics
-                    col1, col2, col3 = st.columns(3)
-                    with col1:
-                        st.metric("Minimum Risk", f"{min_prob:.1%}")
-                    with col2:
-                        st.metric("Maximum Risk", f"{max_prob:.1%}")
-                    with col3:
-                        st.metric("Minutes Analyzed", len(probabilities))
-                    
-                    # Output explanation with time range display
-                    start_str = f"{start_time.hour:02d}:{start_time.minute:02d}"
-                    end_str = f"{end_time.hour:02d}:{end_time.minute:02d}"
-                    st.caption(f"This shows the alert probability for {selected_city} on {day_name} between **{start_str}** and **{end_str}**. The model analyzed {len(probabilities)} individual minutes in this timespan.")
+                # Display result
+                st.metric(f"Alert Probability for {selected_city} on {day_name}", f"{prob:.1%}")
+                
+                # Output explanation
+                st.caption(f"This shows the alert probability for {selected_city} on {day_name}s based on historical data from the past 30 days.")
 
 class SafetyModel:
     def predict_safety_score(self, distance_m, is_alert_active, protection_score=5):
