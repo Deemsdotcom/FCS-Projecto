@@ -49,38 +49,6 @@ UKRAINE_CITIES = {
     "Uzhhorod": {"lat": 48.6208, "lon": 22.2879}
 }
 
-# Map city names to alert API region names
-# The alert API returns region names like "Kyiv City", "Kharkivska oblast", etc.
-# This helps the ML model correctly identify regions when making predictions
-CITY_TO_REGION_MAP = {
-    "Kyiv": "Kyiv City",
-    "Kharkiv": "Kharkivska oblast",
-    "Odesa": "Odeska oblast",
-    "Dnipro": "Dnipropetrovska oblast",
-    "Donetsk": "Donetska oblast",
-    "Zaporizhzhia": "Zaporizka oblast",
-    "Lviv": "Lvivska oblast",
-    "Kryvyi Rih": "Dnipropetrovska oblast",  # Kryvyi Rih is in Dnipro region
-    "Mykolaiv": "Mykolaivska oblast",
-    "Mariupol": "Donetska oblast",  # Mariupol is in Donetsk region
-    "Luhansk": "Luhanska oblast",
-    "Vinnytsia": "Vinnytska oblast",
-    "Simferopol": "Avtonomna Respublika Krym",  # Crimea
-    "Chernihiv": "Chernihivska oblast",
-    "Kherson": "Khersonska oblast",
-    "Poltava": "Poltavska oblast",
-    "Khmelnytskyi": "Khmelnytska oblast",
-    "Cherkasy": "Cherkaska oblast",
-    "Chernivtsi": "Chernivetska oblast",
-    "Zhytomyr": "Zhytomyrska oblast",
-    "Sumy": "Sumska oblast",
-    "Rivne": "Rivnenska oblast",
-    "Ivano-Frankivsk": "Ivano-Frankivska oblast",
-    "Ternopil": "Ternopilska oblast",
-    "Lutsk": "Volynska oblast",  # Lutsk is in Volyn region
-    "Uzhhorod": "Zakarpatska oblast"
-}
-
 ##### shelters
 @st.cache_data
 def load_data():
@@ -591,52 +559,12 @@ def load_historical_alerts_for_ml() -> (pd.DataFrame, list):
     grid_df = pd.DataFrame(grid_data)
 
     # 3. Calculate "alert_occurrence"
-    # Mark ALL minutes when an alert was active (not just when it started).
-    # This gives the model much better data about when danger is present.
-    
-    # First, we need to get the original alerts with start/end times
-    headers = {"Authorization": f"Bearer {ALERTS_API_TOKEN}"}
-    all_alerts_with_duration = []
-    
-    for uid in region_uids:
-        try:
-            url = f"{ALERTS_API_BASE_URL}/regions/{uid}/alerts/month_ago.json"
-            response = requests.get(url, headers=headers, timeout=10)
-            if response.status_code == 200:
-                data = response.json()
-                alerts = data.get("alerts", [])
-                for alert in alerts:
-                    started_at = pd.to_datetime(alert["started_at"])
-                    finished_at = pd.to_datetime(alert.get("finished_at")) if alert.get("finished_at") else None
-                    reg = alert.get("location_title") or alert.get("location_oblast")
-                    
-                    # If alert is still ongoing, use current time as end
-                    if finished_at is None:
-                        finished_at = pd.Timestamp.now(tz='UTC')
-                    
-                    all_alerts_with_duration.append({
-                        "started_at": started_at,
-                        "finished_at": finished_at,
-                        "region": reg
-                    })
-        except Exception:
-            pass
-    
-    # Now mark each hour in the grid as active if ANY alert was active during that hour
+    # Identify which slots in our empty grid actually correspond to a real alert.
+    active_slots = set(zip(df['day_of_week'], df['hour'], df['minute'], df['region']))
+
     def is_active(row):
-        # Create a timestamp for this grid slot (using the hour, ignoring minute for now)
-        # We'll check if any alert overlaps with this hour
-        slot_time = row['timestamp']
-        region = row['region']
-        
-        # Check if any alert was active during this time slot
-        for alert in all_alerts_with_duration:
-            if alert['region'] == region:
-                # Check if this time slot falls within the alert duration
-                if alert['started_at'] <= slot_time <= alert['finished_at']:
-                    return 1
-        return 0
-    
+        return 1 if (row['day_of_week'], row['hour'], row['minute'], row['region']) in active_slots else 0
+
     grid_df['alert_occurrence'] = grid_df.apply(is_active, axis=1)
 
     return grid_df, error_log
@@ -712,25 +640,6 @@ def predict_alert_probability(model, le, region: str, day_of_week: int, hour: in
 
 def render_risk_prediction_tab():
     st.header("Air Alert Risk Model")
-    
-    # Explanation of what this model does
-    with st.expander("ℹ️ How does this prediction model work?"):
-        st.markdown("""
-        **What this model predicts:**
-        - The probability that an air alert will be **active** (ongoing) at a specific time
-        - Based on 30 days of historical alert data from alerts.in.ua
-        
-        **How it works:**
-        1. Downloads all alerts from the last 30 days for all Ukrainian regions
-        2. Creates a timeline marking **every minute** when an alert was active
-        3. Trains a machine learning model to find patterns in: day of week, hour, and location
-        4. Predicts the likelihood of danger at your selected time
-        
-        **What the percentages mean:**
-        - **5-15%**: Low risk - alerts are relatively uncommon at this time/location
-        - **15-30%**: Moderate risk - this time/location has seen significant alert activity
-        - **30%+**: High risk - historically frequent alerts at this time/location
-        """)
 
     # 1) Load data
     with st.spinner("Loading historical alerts..."):
@@ -794,53 +703,39 @@ def render_risk_prediction_tab():
                 if start_minutes >= end_minutes:
                     st.error("⚠️ End time must be after start time!")
                 else:
-                    # Convert city name to region name for the model
-                    # The model was trained on alert API region names, not city names
-                    region_name = CITY_TO_REGION_MAP.get(selected_city, selected_city)
+                    # Calculate probability for each minute in the range
+                    probabilities = []
+                    current_minutes = start_minutes
                     
-                    # Check if the region is in the model's training data
-                    try:
-                        # Test if the region is known to the model
-                        test_encoded = le.transform([region_name])
-                        region_known = True
-                    except ValueError:
-                        region_known = False
-                        st.warning(f"⚠️ Region '{region_name}' not found in training data. Available regions: {', '.join(le.classes_)}")
+                    with st.spinner(f"Calculating probabilities for {end_minutes - start_minutes + 1} minutes..."):
+                        while current_minutes <= end_minutes:
+                            hour = current_minutes // 60
+                            minute = current_minutes % 60
+                            prob = predict_alert_probability(model, le, selected_city, day_of_week, hour, minute)
+                            probabilities.append(prob)
+                            current_minutes += 1
                     
-                    if region_known:
-                        # Calculate probability for each minute in the range
-                        probabilities = []
-                        current_minutes = start_minutes
-                        
-                        with st.spinner(f"Calculating probabilities for {end_minutes - start_minutes + 1} minutes..."):
-                            while current_minutes <= end_minutes:
-                                hour = current_minutes // 60
-                                minute = current_minutes % 60
-                                prob = predict_alert_probability(model, le, region_name, day_of_week, hour, minute)
-                                probabilities.append(prob)
-                                current_minutes += 1
-                        
-                        # Calculate average probability
-                        avg_prob = sum(probabilities) / len(probabilities)
-                        max_prob = max(probabilities)
-                        min_prob = min(probabilities)
-                        
-                        # Display results
-                        st.metric(f"Average Risk for {selected_city}", f"{avg_prob:.1%}")
-                        
-                        # Additional statistics
-                        col1, col2, col3 = st.columns(3)
-                        with col1:
-                            st.metric("Minimum Risk", f"{min_prob:.1%}")
-                        with col2:
-                            st.metric("Maximum Risk", f"{max_prob:.1%}")
-                        with col3:
-                            st.metric("Minutes Analyzed", len(probabilities))
-                        
-                        # Output explanation with time range display
-                        start_str = f"{start_time.hour:02d}:{start_time.minute:02d}"
-                        end_str = f"{end_time.hour:02d}:{end_time.minute:02d}"
-                        st.caption(f"This shows the alert probability for {selected_city} ({region_name}) on {day_name} between **{start_str}** and **{end_str}**. The model analyzed {len(probabilities)} individual minutes in this timespan.")
+                    # Calculate average probability
+                    avg_prob = sum(probabilities) / len(probabilities)
+                    max_prob = max(probabilities)
+                    min_prob = min(probabilities)
+                    
+                    # Display results
+                    st.metric(f"Average Risk for {selected_city}", f"{avg_prob:.1%}")
+                    
+                    # Additional statistics
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("Minimum Risk", f"{min_prob:.1%}")
+                    with col2:
+                        st.metric("Maximum Risk", f"{max_prob:.1%}")
+                    with col3:
+                        st.metric("Minutes Analyzed", len(probabilities))
+                    
+                    # Output explanation with time range display
+                    start_str = f"{start_time.hour:02d}:{start_time.minute:02d}"
+                    end_str = f"{end_time.hour:02d}:{end_time.minute:02d}"
+                    st.caption(f"This shows the alert probability for {selected_city} on {day_name} between **{start_str}** and **{end_str}**. The model analyzed {len(probabilities)} individual minutes in this timespan.")
 
 class SafetyModel:
     def predict_safety_score(self, distance_m, is_alert_active, protection_score=5):
@@ -977,7 +872,7 @@ class Dashboard:
         if shelter_row.empty:
             return
 
-        st.subheader("Shelter Quality Ratings")
+        st.subheader("📊 Shelter Quality Ratings")
         
         # Expandable explanation for how ratings are calculated
         with st.expander("ℹ️ How are these ratings calculated?"):
@@ -998,6 +893,8 @@ class Dashboard:
             - **Capacity** (how many people fit) — Random 4-9 (not based on real data)
             
             - **Reliability** (structural integrity) — Based on type with ±2 variance
+            
+            ⚠️ **Note:** These are estimates based on shelter type metadata, NOT real-time verified conditions.
             """)
 
         score_cols = [
@@ -1063,9 +960,9 @@ class Sidebar:
                                 lon = location.longitude
                                 st.session_state.user_lat = lat
                                 st.session_state.user_lon = lon
-                                st.sidebar.success(f"Found: {location.address}")
+                                st.sidebar.success(f"📍 Found: {location.address}")
                             else:
-                                st.sidebar.error("Address not found. Try adding the city name.")
+                                st.sidebar.error("❌ Address not found. Try adding the city name.")
                         except Exception as e:
                             st.sidebar.error(f"Error: {e}")
 
@@ -1157,7 +1054,7 @@ def main():
             st.session_state["watched_region"] = watched_region
 
             # Show active notification region
-            st.sidebar.markdown("### Notifications")
+            st.sidebar.markdown("### 🔔 Notifications")
             st.sidebar.info(f"Notifications tied to: **{watched_region}**")
 
         # --- Real-Time Region-Specific Alert Notifications (UI toast + optional alarm) ---
@@ -1188,7 +1085,7 @@ def main():
 
         # --- Map & Shelter Logic ---
         # DO NOT call sidebar.render() again here – reuse user_settings / user_lat / user_lon
-        st.markdown("### Live Shelter Map")
+        st.markdown("### 🗺️ Live Shelter Map")
 
         # Load Data
         with st.spinner("Loading shelters..."):
@@ -1308,4 +1205,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
