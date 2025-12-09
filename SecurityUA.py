@@ -452,7 +452,8 @@ def load_historical_alerts_for_ml() -> (pd.DataFrame, list):
                         "timestamp": started_at,
                         "region": reg,
                         "day_of_week": started_at.dayofweek,
-                        "hour": started_at.hour
+                        "hour": started_at.hour,
+                        "minute": started_at.minute
                     })
             else:
                 error_log.append(f"Failed to fetch data for region {uid}: {response.status_code}")
@@ -482,17 +483,18 @@ def load_historical_alerts_for_ml() -> (pd.DataFrame, list):
                 "timestamp": dt,
                 "region": region,
                 "day_of_week": dt.dayofweek,
-                "hour": dt.hour
+                "hour": dt.hour,
+                "minute": dt.minute
             })
 
     grid_df = pd.DataFrame(grid_data)
 
     # 3. Calculate "alert_occurrence"
     # Identify which slots in our empty grid actually correspond to a real alert.
-    active_slots = set(zip(df['day_of_week'], df['hour'], df['region']))
+    active_slots = set(zip(df['day_of_week'], df['hour'], df['minute'], df['region']))
 
     def is_active(row):
-        return 1 if (row['day_of_week'], row['hour'], row['region']) in active_slots else 0
+        return 1 if (row['day_of_week'], row['hour'], row['minute'], row['region']) in active_slots else 0
 
     grid_df['alert_occurrence'] = grid_df.apply(is_active, axis=1)
 
@@ -508,7 +510,7 @@ def train_alert_risk_model(alerts_df: pd.DataFrame):
     if alerts_df.empty or "alert_occurrence" not in alerts_df.columns:
         raise ValueError("Input DataFrame is empty or missing required columns.")
 
-    feature_cols = ["day_of_week", "hour", "region_encoded"]
+    feature_cols = ["day_of_week", "hour", "minute", "region_encoded"]
     
     # We need to turn string regions "Kyiv" into numbers "1" for the math to work.
     le = LabelEncoder()
@@ -544,12 +546,14 @@ def train_alert_risk_model(alerts_df: pd.DataFrame):
 
 
 
-def predict_alert_probability(model, le, region: str, day_of_week: int, hour: int) -> float:
+def predict_alert_probability(model, le, region: str, day_of_week: int, hour: int, minute: int) -> float:
     # Ask the trained model how likely an alert is right now for a specific region.
     if not (0 <= day_of_week <= 6):
         raise ValueError("Day of Week must be between 0 (Mon) and 6 (Sun)")
     if not (0 <= hour <= 23):
         raise ValueError("Hour must be between 0 and 23")
+    if not (0 <= minute <= 59):
+        raise ValueError("Minute must be between 0 and 59")
 
     if model is None or le is None:
         return 0.0
@@ -562,7 +566,7 @@ def predict_alert_probability(model, le, region: str, day_of_week: int, hour: in
         # If the model has never seen this region, it can't guess. Safe fallback.
         return 0.0
 
-    X_new = np.array([[day_of_week, hour, region_encoded]], dtype=float)
+    X_new = np.array([[day_of_week, hour, minute, region_encoded]], dtype=float)
     return model.predict_proba(X_new)[0, 1]
 
 def render_risk_prediction_tab():
@@ -607,9 +611,7 @@ def render_risk_prediction_tab():
 
             col_a, col_b = st.columns(2)
             with col_a:
-                # User wants "Day of Week" (Mon, Tue...) in UI? 
-                # "Switch 'Day of Month' (e.g., 1st, 2nd, 3rd) back to 'Day of Week' (Mon, Tue, Wed, etc)"
-                # I should probably map names to 0-6 integers.
+                # Day of Week selector
                 days_map = {
                     "Monday": 0, "Tuesday": 1, "Wednesday": 2, "Thursday": 3, 
                     "Friday": 4, "Saturday": 5, "Sunday": 6
@@ -617,13 +619,18 @@ def render_risk_prediction_tab():
                 day_name = st.selectbox("Day of Week", list(days_map.keys()))
                 day_of_week = days_map[day_name]
             with col_b:
-                hour = st.number_input("Hour (0–23)", min_value=0, max_value=23, value=12)
+                # Custom time picker for exact time selection (e.g., 13:15)
+                from datetime import time
+                selected_time = st.time_input("Time of Day", value=time(12, 0))
+                hour = selected_time.hour
+                minute = selected_time.minute
 
             if st.button("Predict"):
-                prob = predict_alert_probability(model, le, selected_region, day_of_week, hour)
+                prob = predict_alert_probability(model, le, selected_region, day_of_week, hour, minute)
                 st.metric(f"Risk for {selected_region}", f"{prob:.1%}")
-                # Output explanation
-                st.caption(f"This percentage ({prob:.1%}) represents the model's estimated probability of an alert occurring in {selected_region} at this specific time.")
+                # Output explanation with exact time display
+                time_str = f"{hour:02d}:{minute:02d}"
+                st.caption(f"This percentage ({prob:.1%}) represents the model's estimated probability of an alert occurring in {selected_region} on {day_name} at {time_str}.")
 
 class SafetyModel:
     def predict_safety_score(self, distance_m, is_alert_active, protection_score=5):
