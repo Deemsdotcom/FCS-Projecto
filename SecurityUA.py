@@ -538,8 +538,8 @@ def train_alert_risk_model(alerts_df: pd.DataFrame):
     le = LabelEncoder()
     alerts_df["region_encoded"] = le.fit_transform(alerts_df["region"])
     
-    X = alerts_df[feature_cols].values       #Inputs
-    y = alerts_df["alert_occurrence"].values #Output
+    X = alerts_df[feature_cols].values           #Inputs
+    y = alerts_df["alert_occurrence"].values     #Output
 
     # Sanity Check: do we have 'Normal' days (0) and 'Alert' days (1)?
     if len(np.unique(y)) < 2:
@@ -928,7 +928,6 @@ def main():
     # Tabs
     tab1, tab2 = st.tabs(["Monitor", "Risk Prediction"])
 
-
     
     # TAB 1: LIVE MONITORING
 
@@ -974,7 +973,7 @@ def main():
             st.session_state["watched_region"] = watched_region
 
             # Show active notification region
-            st.sidebar.markdown("###Notifications")
+            st.sidebar.markdown("Notifications")
             st.sidebar.info(f"Notifications tied to: **{watched_region}**")
 
         # alert notifications (connected to region)
