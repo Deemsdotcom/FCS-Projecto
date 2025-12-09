@@ -69,7 +69,7 @@ def load_data():
                     if not geom or 'coordinates' not in geom: 
                         continue
                     
-                    # We listed types we definitely DON'T want
+                    # We listed types we definitely DON'T want.
                     # e.g. bus stops (glass breaks!) or picnic spots (too open).
                     bad_data = [
                         # Transport (Glass danger)
@@ -102,7 +102,7 @@ def load_data():
         # If the file is missing, just print a small warning so we know.
         st.warning(f"Warning: shelters.json error: {e}")
 
-    # PART 2: Load the Metro File (metro.json)
+    # --- PART 2: Load the Metro File (metro.json) ---
     try:
         with open("metro.json", "r", encoding="utf-8") as f:
             metro_data = json.load(f)
@@ -125,8 +125,9 @@ def load_data():
 
    
 
-# API CLIENTS
-
+# ==========================================
+# API Clients
+# ==========================================
 
 class AlertsClient:
     # A simple client to talk to the Alerts API.
@@ -176,7 +177,7 @@ def build_alerts_dataframe(alerts_json: dict) -> pd.DataFrame:
 
     df = pd.DataFrame(alerts_list)
 
-    # Pick the columns we care about and order them
+    # Pick the columns we care about and order them nicely
     preferred_columns = [
         "id",
         "location_title",
@@ -197,9 +198,11 @@ def build_alerts_dataframe(alerts_json: dict) -> pd.DataFrame:
     return df
 
 
-# Real-Time Region-Specific Alert Notifications
+# Real-Time Region-Specific Alert Notifications (UI toast + optional alarm)
 def is_region_under_air_raid(alerts_data: dict, region_name: str) -> bool:
-    # Returns True if there is an active air_raid alert in the given region
+    """
+    Returns True if there is an active air_raid alert in the given region.
+    """
     alerts = alerts_data.get("alerts", [])
     for a in alerts:
         if (
@@ -211,8 +214,11 @@ def is_region_under_air_raid(alerts_data: dict, region_name: str) -> bool:
     return False
 
 def infer_region_from_coords(lat, lon, region_names, geolocator):
-    #tryy to infer the alerts region (location_title) from the users coordinates
-    #Uses Nominatim reverse geocoding, then matches the state/region name against the list of region_names from the alerts API
+    """
+    Try to infer the alerts region (location_title) from the user's coordinates.
+    Uses Nominatim reverse geocoding, then matches the state/region name against
+    the list of region_names from the alerts API.
+    """
     if not region_names:
         return None
 
@@ -232,7 +238,7 @@ def infer_region_from_coords(lat, lon, region_names, geolocator):
                     if state_lower in r_lower or r_lower in state_lower:
                         return r
 
-        # Fallback, just pick something (e.g. Kyiv Oblast or first in list)
+        # Fallback – just pick something (e.g. Kyiv Oblast or first in list)
         for candidate in ["Kyiv Oblast", "Kyiv City"]:
             if candidate in region_names:
                 return candidate
@@ -294,7 +300,7 @@ class RoutingClient:
             return candidates_df.iloc[0] 
 
     def get_route(self, start_coords, end_coords, profile='foot-walking'):
-        # get the actual line (turn-by-turn) to show on the map.
+        # Get the actual line (turn-by-turn) to show on the map.
         if not self.client:
             return self._get_mock_route(start_coords, end_coords)
         try:
@@ -307,7 +313,7 @@ class RoutingClient:
             return self._get_mock_route(start_coords, end_coords)
 
     def _get_mock_route(self, start, end):
-        # draw a straight line if internet fails so the map isn't empty.
+        # Just draw a straight line if internet fails so the map isn't empty.
         return {
             "type": "FeatureCollection", 
             "features": [{"type": "Feature", "geometry": {"type": "LineString", "coordinates": [start, end]}}]
@@ -319,7 +325,7 @@ class NominatimClient:
     USER_AGENT = "SafeShelterUkraine/1.0"
 
     def geocode(self, query):
-        # turn address (Kyiv, Maidan) into coordinates (lat/lon).
+        # Turn an address (like "Kyiv, Maidan") into coordinates (lat/lon).
         params = {
             "q": query,
             "format": "json",
@@ -361,8 +367,9 @@ class NominatimClient:
             return None
 
 
-
-# DATA PROCESSING AND STORAGE
+# ==========================================
+# Data Processing & Storage
+# ==========================================
 
 class DataProcessor:
     SHELTER_TYPES = [
@@ -414,7 +421,7 @@ class DataProcessor:
         return row
 
     def _classify_shelter(self, tags):
-        # Decide which of the 7 types this shelter is, based on its tags
+        # Decide which of the 7 types this shelter is, based on its tags.
         # Heuristic mapping
         if tags.get('access') == 'private' or tags.get('military') == 'bunker':
             return "Hardened Military Bunkers"
@@ -476,7 +483,9 @@ class DataProcessor:
 
 
 
-# MACHINE LEARNING
+# ==========================================
+# Machine Learning
+# ==========================================
 
 # Constants for ML
 ALERTS_API_BASE_URL = "https://api.alerts.in.ua/v1"
@@ -550,7 +559,7 @@ def load_historical_alerts_for_ml() -> (pd.DataFrame, list):
     grid_df = pd.DataFrame(grid_data)
 
     # 3. Calculate "alert_occurrence"
-    # Identify which slots in empty grid actually correspond to a real alert
+    # Identify which slots in our empty grid actually correspond to a real alert.
     active_slots = set(zip(df['day_of_week'], df['hour'], df['minute'], df['region']))
 
     def is_active(row):
@@ -730,8 +739,8 @@ def render_risk_prediction_tab():
 
 class SafetyModel:
     def predict_safety_score(self, distance_m, is_alert_active, protection_score=5):
-        # simple formula to guess how safe (0-100).
-        # start with 100 and subtract points for distance and bad shelter quality
+        # A simple formula to guess how safe you are (0-100).
+        # We start with 100 and subtract points for distance and bad shelter quality.
         base_score = 100 - (distance_m / 50)  # lose 1 point every 50 m
 
         # Bonus for good protection
@@ -759,8 +768,9 @@ def load_all_regions() -> list[str]:
 
 
 
-
+# ==========================================
 # UI Components
+# ==========================================
 
 class MapComponent:
     def render(self, user_lat, user_lon, shelters_df, route_geojson=None):
@@ -848,7 +858,7 @@ class Dashboard:
         with cols[1]:
             delta_color = "normal"
             if safety_score > 80:
-                delta_color = "normal"  # Greenish
+                delta_color = "normal"  # Greenish usually
             elif safety_score < 50:
                 delta_color = "inverse"
 
@@ -862,7 +872,7 @@ class Dashboard:
         if shelter_row.empty:
             return
 
-        st.subheader("Shelter Quality Ratings")
+        st.subheader("📊 Shelter Quality Ratings")
         
         # Expandable explanation for how ratings are calculated
         with st.expander("ℹ️ How are these ratings calculated?"):
@@ -883,6 +893,8 @@ class Dashboard:
             - **Capacity** (how many people fit) — Random 4-9 (not based on real data)
             
             - **Reliability** (structural integrity) — Based on type with ±2 variance
+            
+            ⚠️ **Note:** These are estimates based on shelter type metadata, NOT real-time verified conditions.
             """)
 
         score_cols = [
@@ -964,7 +976,7 @@ class Sidebar:
         st.sidebar.markdown("---")
         max_dist = st.sidebar.slider("Max Search Distance (m)", 500, 5000, 1000)
         
-        # ROUTING 
+        # --- ROUTING ---
         st.sidebar.subheader("Routing Options")
         mode_choice = st.sidebar.radio(
             "Choose Travel Mode:",
@@ -981,9 +993,9 @@ class Sidebar:
             "input_method": input_method,
             "travel_mode": travel_mode 
         }
-
-
+# ==========================================
 # Main Application
+# ==========================================
 
 def main():
     st.set_page_config(page_title="SecurityUA", layout="wide")
@@ -1008,28 +1020,29 @@ def main():
     # Create Tabs
     tab1, tab2 = st.tabs(["Monitor", "Risk Prediction"])
 
-
+    # =======================
     # TAB 1: LIVE MONITORING
+    # =======================
     with tab1:
-        # User Location & Map Settings (Sidebar)
+        # --- User Location & Map Settings (Sidebar) ---
         user_settings = sidebar.render()
         user_lat = user_settings['lat']
         user_lon = user_settings['lon']
 
-        # Alerts + Region Notification
+        # --- Alerts + Region Notification ---
         try:
             alerts_data = alerts_client.get_active_alerts()
         except Exception:
             alerts_data = {}
 
-        # determine alert region from user's current location
+        # --- Determine alert region from user's current location ---
         watched_region = None
 
         # Load ALL regions (not only those with active alerts)
         all_region_names = load_all_regions()
 
         if all_region_names:
-        # Map user coordinates to closest alerts.in.ua region
+    # Map user coordinates to closest alerts.in.ua region
             watched_region = infer_region_from_coords(
                 user_lat,
                 user_lon,
@@ -1041,10 +1054,10 @@ def main():
             st.session_state["watched_region"] = watched_region
 
             # Show active notification region
-            st.sidebar.markdown("### Notifications")
+            st.sidebar.markdown("### 🔔 Notifications")
             st.sidebar.info(f"Notifications tied to: **{watched_region}**")
 
-        # Real-Time Region-Specific Alert Notifications (UI toast + optional alarm)
+        # --- Real-Time Region-Specific Alert Notifications (UI toast + optional alarm) ---
         if "last_region_alert_active" not in st.session_state:
             st.session_state.last_region_alert_active = False
 
@@ -1057,7 +1070,7 @@ def main():
             # Visual toast in the app
             st.toast(f"🚨 NEW AIR ALERT in {watched_region}!", icon="⚠️")
 
-            # small alarm sound
+            # Optional: small alarm sound (tab must be opened/allowed to play audio)
             st.markdown(
                 """
                 <audio autoplay>
@@ -1070,8 +1083,9 @@ def main():
         # Update state for next rerun
         st.session_state.last_region_alert_active = region_alert_active
 
-        # Map & Shelter Logic
-        st.markdown("### Live Shelter Map")
+        # --- Map & Shelter Logic ---
+        # DO NOT call sidebar.render() again here – reuse user_settings / user_lat / user_lon
+        st.markdown("### 🗺️ Live Shelter Map")
 
         # Load Data
         with st.spinner("Loading shelters..."):
@@ -1177,10 +1191,9 @@ def main():
                 st.session_state.user_lon = lng
                 st.rerun()
 
-    
-
+    # =======================
     # TAB 2: RISK PREDICTION
-
+    # =======================
     with tab2:
         render_risk_prediction_tab()
 
