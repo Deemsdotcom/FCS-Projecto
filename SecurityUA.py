@@ -760,21 +760,12 @@ class SafetyModel:
 
 @st.cache_data(ttl=3600)
 def load_all_regions() -> list[str]:
-    # Load all Ukraine alert regions (used for location → region mapping)
-    headers = {"Authorization": f"Bearer {ALERTS_API_TOKEN}"}
     try:
-        resp = requests.get(
-            f"{ALERTS_API_BASE_URL}/regions.json",
-            headers=headers,
-            timeout=10
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        regions = data.get("regions", [])
-        return [r.get("title") for r in regions if r.get("title")]
+        return list(UKRAINE_CITIES.keys())
     except Exception as e:
-        st.sidebar.warning(f"Could not load region list: {e}")
+        st.sidebar.warning(f"Could not load region list from UKRAINE_CITIES: {e}")
         return []
+
 
 
 # ==========================================
