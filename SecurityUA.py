@@ -19,7 +19,7 @@ from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import LabelEncoder
 
 
-# Shared cities dictionary for consistent location selection
+# shared cities dictionary for consistent location selection
 UKRAINE_CITIES = {
     "Kyiv": {"lat": 50.4501, "lon": 30.5234},
     "Kharkiv": {"lat": 49.9935, "lon": 36.2304},
@@ -168,10 +168,7 @@ class AlertsClient:
     def __init__(self):
         self.api_key = "3b9da58a53b958cab81355b22e3feb9c10593dc4ab2203"
 
-        # Safety check: if token is missing, stop the app with an error
-        if not self.api_key or self.api_key.strip() == "":
-            st.error("API token is missing in the code.")
-            raise ValueError("API token not set in AlertsClient")
+
 
     def get_active_alerts(self) -> dict:
         # Fetch whatever alerts are happening right now & send the token in the headers so the API knows it is us
@@ -263,7 +260,7 @@ def infer_region_from_coords(lat, lon, region_names, geolocator):
 
         return region_names[0]  # last fallback
     except Exception as e:
-        s print(f"DEBUG: Reverse geocoding failed: {e}")
+        print(f"DEBUG: Reverse geocoding failed: {e}")
         st.sidebar.warning("Location lookup failed (Network Error). Using default region.")
         # Same fallback logic
         for candidate in ["Kyiv Oblast", "Kyiv City"]:
@@ -533,8 +530,7 @@ def load_historical_alerts_for_ml() -> (pd.DataFrame, list):
 def train_alert_risk_model(alerts_df: pd.DataFrame):
     # this is where we teach the model 🤖
     # tries to find patterns in the Date/Time to guess if an alert is coming
-    if alerts_df.empty or "alert_occurrence" not in alerts_df.columns:
-        raise ValueError("Input DataFrame is empty or missing required columns.")
+
 
     feature_cols = ["day_of_week", "region_encoded"]
     
@@ -573,8 +569,7 @@ def train_alert_risk_model(alerts_df: pd.DataFrame):
 
 def predict_alert_probability(model, le, region: str, day_of_week: int) -> float:
     # ask trained model how likely an alert is for a specific day of week and region
-    if not (0 <= day_of_week <= 6):
-        raise ValueError("Day of Week must be between 0 (Mon) and 6 (Sun)")
+
 
     if model is None or le is None:
         # Debugging: Model not trained
