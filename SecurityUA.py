@@ -507,19 +507,13 @@ def load_historical_alerts_for_ml() -> (pd.DataFrame, list):
                 alerts = data.get("alerts", [])
                 for alert in alerts:
                     started_at = pd.to_datetime(alert["started_at"])
-                    # Capture the end time too! This is crucial for duration-based marking
-                    finished_at = alert.get("finished_at")
-                    if finished_at:
-                        finished_at = pd.to_datetime(finished_at)
-                    else:
-                        # If alert hasn't finished yet, assume 2-hour duration (typical for air raids)
-                        finished_at = started_at + pd.Timedelta(hours=2)
-                    
                     reg = alert.get("location_title") or alert.get("location_oblast")
                     all_alerts.append({
-                        "start_time": started_at,
-                        "end_time": finished_at,
-                        "region": reg
+                        "timestamp": started_at,
+                        "region": reg,
+                        "day_of_week": started_at.dayofweek,
+                        "hour": started_at.hour,
+                        "minute": started_at.minute
                     })
             else:
                 error_log.append(f"Failed to fetch data for region {uid}: {response.status_code}")
@@ -555,22 +549,12 @@ def load_historical_alerts_for_ml() -> (pd.DataFrame, list):
 
     grid_df = pd.DataFrame(grid_data)
 
-    # 3. Calculate "alert_occurrence" - DURATION-BASED APPROACH
-    # Instead of only marking the exact start minute, we mark ALL hours during which an alert was active.
-    # This is way more realistic! An alert that lasts from 12:32 to 14:45 should show up as active 
-    # for all those hours, not just the one minute it started.
-    
+    # 3. Calculate "alert_occurrence"
+    # Identify which slots in empty grid actually correspond to a real alert
+    active_slots = set(zip(df['day_of_week'], df['hour'], df['minute'], df['region']))
+
     def is_active(row):
-        # Check if this timestamp falls within ANY alert duration for this region
-        timestamp = row['timestamp']
-        region = row['region']
-        
-        for _, alert in df[df['region'] == region].iterrows():
-            # Is this time slot between the alert's start and end?
-            if alert['start_time'] <= timestamp <= alert['end_time']:
-                return 1  # YES! There was an active alert at this time
-        
-        return 0  # Nope, peaceful time
+        return 1 if (row['day_of_week'], row['hour'], row['minute'], row['region']) in active_slots else 0
 
     grid_df['alert_occurrence'] = grid_df.apply(is_active, axis=1)
 
