@@ -559,12 +559,52 @@ def load_historical_alerts_for_ml() -> (pd.DataFrame, list):
     grid_df = pd.DataFrame(grid_data)
 
     # 3. Calculate "alert_occurrence"
-    # Identify which slots in our empty grid actually correspond to a real alert.
-    active_slots = set(zip(df['day_of_week'], df['hour'], df['minute'], df['region']))
-
+    # Mark ALL minutes when an alert was active (not just when it started).
+    # This gives the model much better data about when danger is present.
+    
+    # First, we need to get the original alerts with start/end times
+    headers = {"Authorization": f"Bearer {ALERTS_API_TOKEN}"}
+    all_alerts_with_duration = []
+    
+    for uid in region_uids:
+        try:
+            url = f"{ALERTS_API_BASE_URL}/regions/{uid}/alerts/month_ago.json"
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                alerts = data.get("alerts", [])
+                for alert in alerts:
+                    started_at = pd.to_datetime(alert["started_at"])
+                    finished_at = pd.to_datetime(alert.get("finished_at")) if alert.get("finished_at") else None
+                    reg = alert.get("location_title") or alert.get("location_oblast")
+                    
+                    # If alert is still ongoing, use current time as end
+                    if finished_at is None:
+                        finished_at = pd.Timestamp.now(tz='UTC')
+                    
+                    all_alerts_with_duration.append({
+                        "started_at": started_at,
+                        "finished_at": finished_at,
+                        "region": reg
+                    })
+        except Exception:
+            pass
+    
+    # Now mark each hour in the grid as active if ANY alert was active during that hour
     def is_active(row):
-        return 1 if (row['day_of_week'], row['hour'], row['minute'], row['region']) in active_slots else 0
-
+        # Create a timestamp for this grid slot (using the hour, ignoring minute for now)
+        # We'll check if any alert overlaps with this hour
+        slot_time = row['timestamp']
+        region = row['region']
+        
+        # Check if any alert was active during this time slot
+        for alert in all_alerts_with_duration:
+            if alert['region'] == region:
+                # Check if this time slot falls within the alert duration
+                if alert['started_at'] <= slot_time <= alert['finished_at']:
+                    return 1
+        return 0
+    
     grid_df['alert_occurrence'] = grid_df.apply(is_active, axis=1)
 
     return grid_df, error_log
@@ -640,6 +680,27 @@ def predict_alert_probability(model, le, region: str, day_of_week: int, hour: in
 
 def render_risk_prediction_tab():
     st.header("Air Alert Risk Model")
+    
+    # Explanation of what this model does
+    with st.expander("ℹ️ How does this prediction model work?"):
+        st.markdown("""
+        **What this model predicts:**
+        - The probability that an air alert will be **active** (ongoing) at a specific time
+        - Based on 30 days of historical alert data from alerts.in.ua
+        
+        **How it works:**
+        1. Downloads all alerts from the last 30 days for all Ukrainian regions
+        2. Creates a timeline marking **every minute** when an alert was active (not just when it started)
+        3. Trains a machine learning model to find patterns in: day of week, hour, and location
+        4. Predicts the likelihood of danger at your selected time
+        
+        **What the percentages mean:**
+        - **5-15%**: Low risk - alerts are relatively uncommon at this time/location
+        - **15-30%**: Moderate risk - this time/location has seen significant alert activity
+        - **30%+**: High risk - historically frequent alerts at this time/location
+        
+        ⚠️ **Note:** Past patterns don't guarantee future events. Use this as one input among many for safety decisions.
+        """)
 
     # 1) Load data
     with st.spinner("Loading historical alerts..."):
