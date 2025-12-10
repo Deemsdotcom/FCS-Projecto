@@ -224,8 +224,7 @@ def build_alerts_dataframe(alerts_json: dict) -> pd.DataFrame:
 def is_region_under_air_raid(alerts_data: dict, region_name: str) -> bool:
     #returns true if active alert in region
     
-    # Map English name (e.g. "Kyiv") to API name (e.g. "м. Київ")
-    # If not found, fallback to original string
+    # Map English name (e.g. "Kyiv") to API name (e.g. "м. Київ") -> if not found, fallback to original string
     target_name = CITY_TO_API_MAPPING.get(region_name, region_name)
     
     alerts = alerts_data.get("alerts", [])
