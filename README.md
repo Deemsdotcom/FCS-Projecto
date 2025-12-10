@@ -7,7 +7,7 @@ SecurityUA is a Streamlit web application with its purpose being:
 - Showing nearby shelters and metro stations on an interactive map.
 - Calculating the fastest route to the best shelter using OpenRouteService.
 - Estimating a safety score based on distance, shelter quality and active alerts.
-- Training a simple machine learining model to estimate daily air alert risk by city & weekday.
+- Training a simple machine learning model to estimate daily air alert risk by city & weekday.
 
 This application is a prototype for academic use and not intended for real-world emergency decisions.
 
