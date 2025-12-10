@@ -275,13 +275,9 @@ def infer_region_from_coords(lat, lon, region_names, geolocator):
 
 
 class RoutingClient: #talk to ors
-    def __init__(self, api_key="eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6Ijg2ZjI2ODQ1Y2JhMzQ1YTJhNmU3MDgwNDM0NjI4NGY5IiwiaCI6Im11cm11cjY0In0="):
-        self.api_key = api_key
-        
-        if self.api_key:
-            self.client = openrouteservice.Client(key=self.api_key)
-        else:
-            self.client = None
+    def __init__(self):
+        self.api_key = Config.ORS_API_KEY
+        self.client = openrouteservice.Client(key=self.api_key)
 
     def find_quickest_shelter(self, user_lon, user_lat, candidates_df, profile='foot-walking'):
         #we take the top shelters and ask the Matrix API: which one is actually fastest to walk to
@@ -440,6 +436,25 @@ class DataProcessor: #enrich shelter entries
 
 
 
+# SAFETY MODEL
+class SafetyModel:
+    def predict_safety_score(self, distance_m, is_alert_active, protection_score=5):
+        # formula to guess how safe you are (0-100): start with 100 and subtract points for distance and bad shelter quality
+        base_score = 100 - (distance_m / 50)  # lose 1 point every 50 m
+
+        # Bonus for good protection
+        base_score += (protection_score - 5) * 2
+
+        if is_alert_active:
+            base_score -= 20
+
+        # between 0 and 100
+        return max(0, min(100, base_score))
+
+    def predict_time_to_danger(self, region_id):
+        # guess how long until things get dangerous (minutes) (random prediction for demo purposes)
+        return random.randint(5, 30)
+
 
 # MACHINE LEARNING
 
@@ -534,7 +549,7 @@ def load_historical_alerts_for_ml() -> (pd.DataFrame, list): #load alerts and bu
 @st.cache_resource(show_spinner=True)
 
 def train_alert_risk_model(alerts_df: pd.DataFrame):
-    # this is where we teach the model 🤖
+     # this is where we teach the model 🤖
     # tries to find patterns in the Date/Time to guess if an alert is coming
 
 
@@ -576,28 +591,28 @@ def train_alert_risk_model(alerts_df: pd.DataFrame):
 def predict_alert_probability(model, le, region: str, day_of_week: int) -> float:
     # ask trained model how likely an alert is for a specific day of week and region
 
-    if model is None or le is None:
-        # Debugging: Model not trained
-        print("DEBUG: Model or LabelEncoder is None") 
-        return 0.0
+        if model is None or le is None:
+            # Debugging: Model not trained
+            print("DEBUG: Model or LabelEncoder is None") 
+            return 0.0
 
-    # Get the API-compatible region name
-    region_api_name = CITY_TO_API_MAPPING.get(region)
-    if not region_api_name:
-        print(f"DEBUG: No mapping found for region '{region}'")
-        return 0.0
+        # Get the API-compatible region name
+        region_api_name = CITY_TO_API_MAPPING.get(region)
+        if not region_api_name:
+            print(f"DEBUG: No mapping found for region '{region}'")
+            return 0.0
 
-    #turn the region name (str) into the number ID (int) the model knows
-    try:
-        # le.transform expects a list -> wrap it in []
-        region_encoded = le.transform([region_api_name])[0]
-    except ValueError as e:
-        # if model has never seen this region, it can nott guess => Safe fallback
-        print(f"DEBUG: Region '{region_api_name}' ({region}) not in training data")
-        return 0.0
+        #turn the region name (str) into the number ID (int) the model knows
+        try:
+            # le.transform expects a list -> wrap it in []
+            region_encoded = le.transform([region_api_name])[0]
+        except ValueError as e:
+            # if model has never seen this region, it can nott guess => Safe fallback
+            print(f"DEBUG: Region '{region_api_name}' ({region}) not in training data")
+            return 0.0
 
-    X_new = np.array([[day_of_week, region_encoded]], dtype=float)
-    return model.predict_proba(X_new)[0, 1]
+        X_new = np.array([[day_of_week, region_encoded]], dtype=float)
+        return model.predict_proba(X_new)[0, 1]
 
 def render_risk_prediction_tab():
     st.header("Air Alert Risk Model")
@@ -656,33 +671,11 @@ def render_risk_prediction_tab():
                 st.caption(f"This shows the alert probability for {selected_city} on {day_name}s based on historical data from the past 30 days.")
 
 #no more ml, heuristic:
-class SafetyModel:
-    def predict_safety_score(self, distance_m, is_alert_active, protection_score=5):
-        # formula to guess how safe you are (0-100): start with 100 and subtract points for distance and bad shelter quality
-        base_score = 100 - (distance_m / 50)  # lose 1 point every 50 m
 
-        # Bonus for good protection
-        base_score += (protection_score - 5) * 2
-
-        if is_alert_active:
-            base_score -= 20
-
-        # between 0 and 100
-        return max(0, min(100, base_score))
-
-    def predict_time_to_danger(self, region_id):
-        # guess how long until things get dangerous (minutes) (random prediction for demo purposes)
-        return random.randint(5, 30)
-
-
-#helper for region dropdown
 @st.cache_data(ttl=3600)
 def load_all_regions() -> list[str]:
-    try:
-        return list(UKRAINE_CITIES.keys())
-    except Exception as e:
-        st.sidebar.warning(f"Could not load region list from UKRAINE_CITIES: {e}")
-        return []
+    # UKRAINE_CITIES is hardcoded, so this is safe
+    return list(UKRAINE_CITIES.keys())
 
 
 
