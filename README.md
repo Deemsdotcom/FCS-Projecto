@@ -1,26 +1,30 @@
 # FCS-Projecto
-Project Overview
+# Project Overview
 
-SecurityUA is a Streamlit web application that integrates real-time air alert information, geospatial shelter discovery, routing, and a basic machine learning risk model.
-
-The purpose of the project is to demonstrate:
-	•	Use of external REST APIs
-	•	Geolocation and routing logic
-	•	Data processing with pandas
-	•	Interactive visualisation with Streamlit & Folium
-	•	Training and evaluating a supervised ML model
+SecurityUA is a Streamlit web application with its purpose being:
+- Monitoring live air alerts in Ukraine via the official alters.in.ua API.
+- Showing nearby shelters and metro stations on an interactive map.
+- Calculating the fastest route to the best shelter using OpenRouteService.
+- Estimating a safety score based on distance, shelter quality and active alerts.
+- Training a simple machine learining model to estimate daily air alert risk by city & weekday.
 
 This application is a prototype for academic use and not intended for real-world emergency decisions.
 
+# File Overview
 
+- app.py			--> Main streamlit application (all logic lives here)
+- shelters.json		--> GeoJSON-like file with shelter locations across Ukraine
+- metro.json		--> GeoJSON-like file with metro station locations
+- requirements.txt	--> Python dependencies to run the app
+- README.md			--> This document
     
 Main Features
 
 1. Live Air Alert Monitoring
-	•	Fetches active alerts from the official alerts.in.ua API
-	•	Displays alert details in a table
-	•	User can choose a region to watch
-	•	Toast notification + optional alarm when that region goes under air raid alert
+	-	**Fetches active alerts from the official alerts.in.ua API
+	-	Displays alert details in a table
+	-	User can choose a region to watch
+	-	Toast notification + optional alarm when that region goes under air raid alert
 
 3. Interactive Shelter Map
 	•	Loads shelters from shelters.json and metro stations from metro.json
