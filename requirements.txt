@@ -7,4 +7,4 @@ numpy
 folium
 streamlit-folium
 scikit-learn
-pydeck -> I THINK WE DO NOT NEED
+pydeck
