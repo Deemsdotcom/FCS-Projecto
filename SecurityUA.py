@@ -752,12 +752,12 @@ class Dashboard:
         count = len(active_alerts)
 
         if count > 0:
-            st.error(f"🚨 AIR RAID ALERT ACTIVE! ({count} regions)")
+            st.error(f"AIR RAID ALERT ACTIVE! ({count} regions)")
             with st.expander("View Affected Regions"):
                 for alert in active_alerts:
-                    st.warning(f"📍 {alert['location_title']} (since {alert['started_at']})")
+                    st.warning(f" {alert['location_title']} (since {alert['started_at']})")
         else:
-            st.success("✅ No Active Air Raid Alerts")
+            st.success("No Active Air Raid Alerts")
 
     def render_metrics(self, nearest_shelter, safety_score, time_to_danger):
         cols = st.columns(3)
@@ -1005,7 +1005,7 @@ def main():
         # Fire notification only when state changes: False -> True
         if region_alert_active and not st.session_state.last_region_alert_active:
             # Visual toast in the app
-            st.toast(f"🚨 NEW AIR ALERT in {watched_region}!", icon="⚠️")
+            st.toast(f"NEW AIR ALERT in {watched_region}!", icon="⚠️")
 
             # alarm sound WIUWIU
             st.markdown(
@@ -1040,7 +1040,7 @@ def main():
         nearby_df = shelters_df[shelters_df['distance_m'] <= user_settings['max_dist']]
         
         if nearby_df.empty and not shelters_df.empty:
-            st.warning(f"⚠️ No shelters found within {user_settings['max_dist']}m. Showing the closest 10.")
+            st.warning(f"No shelters found within {user_settings['max_dist']}m. Showing the closest 10.")
             shelters_df = shelters_df.head(10)
         else:
             shelters_df = nearby_df
