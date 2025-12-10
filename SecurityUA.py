@@ -747,6 +747,18 @@ class MapComponent:
 
 
 class Dashboard:
+    SAFETY_SCORE_EXPLANATION = """
+    **Safety Score** (0-100) is calculated as:
+    1. Start at **100 points**
+    2. **Subtract distance penalty:** -1 point per 50m to shelter
+    3. **Add protection bonus:** +(shelter protection - 5) × 2
+    4. **Subtract alert penalty:** -20 if air raid alert active
+    
+    **Example:**
+    - Shelter 500m away (protection 8/10), no alert:
+      - 100 - (500/50) + (8-5)×2 = 100 - 10 + 6 = **96/100**
+    """
+
     def render_status_panel(self, alerts_data):
         active_alerts = [a for a in alerts_data.get('alerts', []) if a['alert_type'] == 'air_raid']
         count = len(active_alerts)
@@ -775,6 +787,8 @@ class Dashboard:
                 delta_color = "inverse"
 
             st.metric("Current Safety Score", f"{int(safety_score)}/100", delta_color=delta_color)
+            with st.expander("How is Safety Score calculated?"):
+                st.markdown(self.SAFETY_SCORE_EXPLANATION)
 
         with cols[2]:
             st.metric("Est. Time to Danger", f"{time_to_danger} min")
@@ -1094,17 +1108,7 @@ def main():
             c2.metric("Safety Score", f"{int(safety_score)}/100", delta_color=delta_color)
             with c2:
                 with st.expander("How is Safety Score calculated?"):
-                    st.markdown("""
-                    **Safety Score** (0-100) is calculated as:
-                    1. Start at **100 points**
-                    2. **Subtract distance penalty:** -1 point per 50m to shelter
-                    3. **Add protection bonus:** +(shelter protection - 5) × 2
-                    4. **Subtract alert penalty:** -20 if air raid alert active
-                    
-                    **Example:**
-                    - Shelter 500m away (protection 8/10), no alert:
-                      - 100 - (500/50) + (8-5)×2 = 100 - 10 + 6 = **96/100**
-                    """)
+                    st.markdown(Dashboard.SAFETY_SCORE_EXPLANATION)
             
             c3.metric("Est. Danger In", f"{time_to_danger} min")
         else:
