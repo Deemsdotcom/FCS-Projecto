@@ -128,7 +128,10 @@ def load_data():
                         "lat": geom['coordinates'][1],
                         "lon": geom['coordinates'][0]
                     })
-                    
+     except Exception as e:
+        # If the file is missing, just print a small warning so we know
+        st.warning(f"Warning: shelters.json error: {e}")
+         
 
     # PART 2: Load the metro file (metro.json)
     try:
