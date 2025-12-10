@@ -146,6 +146,7 @@ def load_data():
                         "lon": geom['coordinates'][0]
                     })
     
+
     except Exception as e:
         # it is ok if metro.json is missing -> no metro
         pass 
