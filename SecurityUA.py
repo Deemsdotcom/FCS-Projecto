@@ -1,22 +1,22 @@
 import streamlit as st
-import requests
+import requests #call APIs
 import random
 import time
-import json
+import json #read and write JSON files/strings
 import math
 from datetime import datetime, timedelta
 
-import openrouteservice
+import openrouteservice #routing/mapping API client
 import pandas as pd
 import numpy as np
-import folium
+import folium #library to create interactive Leaflet maps in python -> show maps
 from geopy.distance import geodesic
-from geopy.geocoders import Nominatim
-from streamlit_folium import st_folium
+from geopy.geocoders import Nominatim #address -> coordinates
+from streamlit_folium import st_folium #folium map
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.ensemble import GradientBoostingClassifier  #ML model
 from sklearn.metrics import roc_auc_score
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder #text labels to numbers (ML)
 
 
 # shared cities dictionary for consistent location selection
