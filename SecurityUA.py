@@ -826,18 +826,22 @@ class Dashboard:
 
 class Sidebar:
     def __init__(self, geolocator):
+        # store the geolocator so we can reuse it for adress search
         self.geolocator = geolocator
         self.cities = UKRAINE_CITIES  # shared cities dictionary
 
     def render(self):
+        # build the entire sidebar UI (location input + distance filter)
         st.sidebar.header("Settings")
         st.sidebar.subheader("Your Location")
         
+        # let the user choose how they want to input their location
         input_method = st.sidebar.radio(
             "Input Method",
             ["City Selection", "Address Search", "Manual Coordinates"] 
         )
 
+        # initialize default location in session_stat if it doesn't exist yet (Kyiv in this case)
         if 'user_lat' not in st.session_state:
             st.session_state.user_lat = 50.4501
         if 'user_lon' not in st.session_state:
@@ -845,22 +849,30 @@ class Sidebar:
 
         lat, lon = st.session_state.user_lat, st.session_state.user_lon
 
+        # Option 1: City Selection
         if input_method == "City Selection":
             sorted_cities = sorted(list(self.cities.keys()))
             default_index = sorted_cities.index("Kyiv") if "Kyiv" in sorted_cities else 0
-            
+
+            # let the user pick a city form the predefined list
             city_name = st.sidebar.selectbox("Select City", sorted_cities, index=default_index)
+            # look up coordinates for the chosen city
             coords = self.cities[city_name]
             lat, lon = coords['lat'], coords['lon']
+            # update global location so the rest of the app can use it
             st.session_state.user_lat = lat
             st.session_state.user_lon = lon
-
+        
+        # Option 2: Adress Search
         elif input_method == "Address Search":
+            # free text input where user can enter a specific adress
             address = st.sidebar.text_input("Enter Address (e.g. 'Maidan Nezalezhnosti, Kyiv')")
+            # only trigger geocoding when the user presses the button
             if st.sidebar.button("Search Address"):
                 if address:
                     with st.spinner("Searching map..."):
                         try:
+                            # use geolocator to convert text address --> coordinates
                             location = self.geolocator.geocode(address)
                             if location:
                                 lat = location.latitude
@@ -872,8 +884,11 @@ class Sidebar:
                                 st.sidebar.error("Address not found. Try adding the city name.")
                         except Exception as e:
                             st.sidebar.error(f"Error: {e}")
-
+        
+        # Option 3: Manual Coordinates
         elif input_method == "Manual Coordinates":
+            # let the user directly type latitude and longitude
+            # we prefill with the current stored values so the user can tweak them
             lat = st.sidebar.number_input("Latitude", value=st.session_state.user_lat, format="%.4f")
             lon = st.sidebar.number_input("Longitude", value=st.session_state.user_lon, format="%.4f")
             st.session_state.user_lat = lat
