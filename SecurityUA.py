@@ -131,24 +131,24 @@ def load_data():
                     
 
     # PART 2: Load the metro file (metro.json)
-try:
-    with open("metro.json", "r", encoding="utf-8") as f:
-        metro_data = json.load(f)
-        if 'features' in metro_data:
-            for feature in metro_data['features']:
-                props = feature.get('properties', {})
-                geom = feature.get('geometry', {})
-                
-                combined_shelters.append({
-                    "name": props.get('name', 'Metro Station'),
-                    "type": "metro_station",
-                    "lat": geom['coordinates'][1],
-                    "lon": geom['coordinates'][0]
-                })
+    try:
+        with open("metro.json", "r", encoding="utf-8") as f:
+            metro_data = json.load(f)
+            if 'features' in metro_data:
+                for feature in metro_data['features']:
+                    props = feature.get('properties', {})
+                    geom = feature.get('geometry', {})
+                    
+                    combined_shelters.append({
+                        "name": props.get('name', 'Metro Station'),
+                        "type": "metro_station",
+                        "lat": geom['coordinates'][1],
+                        "lon": geom['coordinates'][0]
+                    })
 
-except Exception as e:
-    # It is ok if metro.json is missing → no metro stations added
-    pass
+    except Exception as e:
+        # It is ok if metro.json is missing → no metro stations added
+        pass
 
     return pd.DataFrame(combined_shelters) #all shelters & metros combined
 
