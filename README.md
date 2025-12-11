@@ -38,9 +38,10 @@ Run the application using Streamlit:
 ```bash
 streamlit run SecurityUA.py
 ```
+If it does not work:
 
 ```bash
-py
+python -m streamlit run SecurityUA.py
 ```
 The app will open in your default web browser (usually at `http://localhost:8501`).
 
