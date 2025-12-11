@@ -38,6 +38,10 @@ Run the application using Streamlit:
 ```bash
 streamlit run SecurityUA.py
 ```
+
+```bash
+py
+```
 The app will open in your default web browser (usually at `http://localhost:8501`).
 
 3.  **Data Files**: Ensure the following JSON files are in the same directory (used for shelter locations):
