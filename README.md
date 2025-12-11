@@ -29,10 +29,10 @@ This application is a prototype for academic use and not intended for real-world
 1.  **Clone or download** this repository.
 2.  **Install the required Python packages**:
 
-    ```bash
-    pip install streamlit requests pandas numpy folium streamlit-folium geopy openrouteservice scikit-learn
-    ```
-
+```bash
+   pip install -r requirements.txt
+```
+   
 Run the application using Streamlit:
 
 ```bash
