@@ -30,7 +30,7 @@ This application is a prototype for academic use and not intended for real-world
 2.  **Install the required Python packages**:
 
 ```bash
-   pip install -r requirements.txt
+pip install -r requirements.txt
 ```
    
 Run the application using Streamlit:
