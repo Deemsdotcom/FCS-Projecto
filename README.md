@@ -33,6 +33,13 @@ This application is a prototype for academic use and not intended for real-world
     pip install streamlit requests pandas numpy folium streamlit-folium geopy openrouteservice scikit-learn
     ```
 
+Run the application using Streamlit:
+
+```bash
+streamlit run SecurityUA.py
+```
+The app will open in your default web browser (usually at `http://localhost:8501`).
+
 3.  **Data Files**: Ensure the following JSON files are in the same directory (used for shelter locations):
     -   `shelters.json`
     -   `metro.json`
@@ -56,15 +63,6 @@ The app uses two external APIs:
    - Contains metro station features with coordinates.
    - Treated as additional shelters with type metro_station.
 
-## How to Run the App
-
-Run the application using Streamlit:
-
-```bash
-streamlit run SecurityUA.py
-```
-
-The app will open in your default web browser (usually at `http://localhost:8501`).
 
 ## Usage Overview
 
