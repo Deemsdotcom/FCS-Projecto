@@ -98,7 +98,6 @@ Tab 1 - Monitor
     - Time to shelter (in minutes) from routing duration.
 - Interactive Map:
   	- Shows user location.
-  	- Shows shelters with color-coded markers based on type.
   	- Shows the route to the recommended shelter.
 - Shelter Quality Ratings section with progress bars for:
   	- Protection, Infrastructure, Accessibility, Capacity, Realiability.
